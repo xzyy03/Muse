@@ -49,6 +49,7 @@ import compose.icons.FeatherIcons
 import compose.icons.feathericons.CheckSquare
 import compose.icons.feathericons.ChevronDown
 import compose.icons.feathericons.ChevronUp
+import kotlinx.coroutines.delay
 
 /**
  * 位于输入框上方的待办任务常驻面板：
@@ -67,6 +68,22 @@ fun TodoDashboardBar(
 ) {
     if (items.isEmpty()) return
 
+    // 全部完成后自动收起：先保留一小段时间让用户看到「全部完成」，再整块淡出；
+    // 之后若有新待办（allDone 变回 false）自动重新出现。
+    var hiddenAfterDone by rememberSaveable(sessionId) { mutableStateOf(false) }
+    val totalCount = items.size
+    val completedCount = items.count { it.status == TodoStatus.COMPLETED }
+    val allDone = totalCount > 0 && completedCount == totalCount
+    LaunchedEffect(allDone) {
+        if (allDone) {
+            delay(TODO_AUTO_HIDE_DELAY_MS)
+            hiddenAfterDone = true
+            onExpandedChange(false)
+        } else {
+            hiddenAfterDone = false
+        }
+    }
+
     // 按会话隔离记忆展开状态，新会话默认收起
     var isExpanded by rememberSaveable(sessionId) { mutableStateOf(false) }
     val effectiveExpanded = isExpanded && !forceCollapse
@@ -75,13 +92,16 @@ fun TodoDashboardBar(
         onExpandedChange(effectiveExpanded)
     }
 
-    val totalCount = items.size
-    val completedCount = items.count { it.status == TodoStatus.COMPLETED }
     val inProgressItem = items.firstOrNull { it.status == TodoStatus.IN_PROGRESS }
 
     val cardBgColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.98f)
     val borderColor = MaterialTheme.colorScheme.outlineVariant
 
+    AnimatedVisibility(
+        visible = !hiddenAfterDone,
+        enter = expandVertically() + fadeIn(),
+        exit = shrinkVertically() + fadeOut(tween(220))
+    ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -189,7 +209,10 @@ fun TodoDashboardBar(
             }
         }
     }
+    }
 }
+
+private const val TODO_AUTO_HIDE_DELAY_MS = 2_500L
 
 private fun TodoItem.toParsedItem(): ParsedTodoItem = ParsedTodoItem(
     id = id,
