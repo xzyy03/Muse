@@ -829,8 +829,8 @@ class AIAgentViewModel @Inject constructor(
         }
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
-    val currentSessionMode: StateFlow<AgentMode> = currentSessionState.map { it?.mode ?: AgentMode.BUILD }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, AgentMode.BUILD)
+    val currentSessionMode: StateFlow<AgentMode> = currentSessionState.map { it?.mode ?: AgentMode.AUTO }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AgentMode.AUTO)
 
     /** 当前会话的持续目标（goal）快照；null 表示未设定目标。 */
     val currentSessionGoal: StateFlow<SessionGoalUi?> = currentSessionState
@@ -1909,7 +1909,7 @@ class AIAgentViewModel @Inject constructor(
 
             val sessionEntity = sessionUseCase.getSessionById(sessionId)
             val sessionDomain = sessionEntity?.toDomain()
-            val mode = sessionDomain?.mode ?: AgentMode.BUILD
+            val mode = sessionDomain?.mode ?: AgentMode.AUTO
             // 子会话的 subagentType 存的是自定义 agent 名；能查到定义时提示词与工具集都按它组装。
             // 定义来自目录扫描（远程模式经 SFTP），故切到 IO，避免阻塞主线程。
             val agentDefinition = withContext(Dispatchers.IO) {
@@ -2908,6 +2908,19 @@ class AIAgentViewModel @Inject constructor(
     fun selectSession(id: String) {
         if (_currentSessionId.value == id) return
         _currentSessionId.value = id
+        // 本二改版固定以完整权限运行：切到任何会话时把其模式拉回 AUTO（不再提供模式切换按钮）。
+        ensureAutoMode(id)
+    }
+
+    /** 会话模式归一为 AUTO（全权限，不弹授权）；已是 AUTO 时不做写入。 */
+    private fun ensureAutoMode(sessionId: String) {
+        viewModelScope.launch {
+            val session = sessionUseCase.getSessionById(sessionId) ?: return@launch
+            val mode = runCatching { AgentMode.valueOf(session.mode) }.getOrNull()
+            if (mode != AgentMode.AUTO) {
+                sessionUseCase.updateMode(sessionId, AgentMode.AUTO.name)
+            }
+        }
     }
 
     fun deleteSessions(ids: Set<String>) = viewModelScope.launch {

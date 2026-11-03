@@ -95,7 +95,6 @@ import com.muse.feature.onboarding.domain.OnboardingStep
 import com.muse.feature.onboarding.presentation.onboardingTarget
 import com.muse.feature.agent.domain.command.SlashCommand
 import com.muse.feature.agent.domain.command.SlashCommandKind
-import com.muse.feature.agent.domain.model.AgentMode
 import com.muse.feature.agent.domain.model.GoalStatus
 import com.muse.feature.agent.presentation.SessionGoalUi
 import com.muse.feature.agent.domain.model.ReasoningEffort
@@ -166,8 +165,6 @@ internal fun ChatInputBar(
     providers: List<AIProviderConfig>,
     modelMetadata: Map<String, ModelMetadata>,
     onSelectModel: (String, String) -> Unit,
-    currentMode: AgentMode,
-    onToggleMode: (AgentMode) -> Unit,
     currentGoal: SessionGoalUi? = null,
     onSetGoalPaused: (Boolean) -> Unit = {},
     onClearGoal: () -> Unit = {},
@@ -577,46 +574,6 @@ internal fun ChatInputBar(
                         modifier = Modifier.weight(1f),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val modeColor = when (currentMode) {
-                            AgentMode.PLAN -> MaterialTheme.colorScheme.primaryContainer
-                            AgentMode.AUTO -> MaterialTheme.colorScheme.error
-                            AgentMode.BUILD -> MaterialTheme.semanticColors.success
-                        }
-                        val modeTextColor = when (currentMode) {
-                            AgentMode.PLAN -> MaterialTheme.colorScheme.onPrimaryContainer
-                            AgentMode.AUTO -> MaterialTheme.colorScheme.onError
-                            AgentMode.BUILD -> MaterialTheme.semanticColors.onSuccess
-                        }
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = modeColor,
-                            modifier = Modifier
-                                .clickable {
-                                    val nextMode = when (currentMode) {
-                                        AgentMode.BUILD -> AgentMode.PLAN
-                                        AgentMode.PLAN -> AgentMode.AUTO
-                                        AgentMode.AUTO -> AgentMode.BUILD
-                                    }
-                                    onToggleMode(nextMode)
-                                }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .width(46.dp)
-                                    .padding(vertical = 5.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = currentMode.name,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = modeTextColor
-                                    )
-                                )
-                            }
-                        }
-                        Spacer(Modifier.width(Spacing.xs))
-
                         ModelIconButton(
                             provider = activeProvider,
                             providers = providers,

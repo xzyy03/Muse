@@ -18,7 +18,7 @@ data class ChatSessionEntity(
     val createdAt: Long,
     val updatedAt: Long,
     val workspacePath: String = "",
-    val mode: String = AgentMode.BUILD.name,
+    val mode: String = AgentMode.AUTO.name,
     /** 进入 PLAN 前的模式（如 AUTO）；退出 PLAN 时恢复，null 视为 BUILD。 */
     val modeBeforePlan: String? = null,
     /** 会话级持续目标文本；null 表示未设定目标。 */

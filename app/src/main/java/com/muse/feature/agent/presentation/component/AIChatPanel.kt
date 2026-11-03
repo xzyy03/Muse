@@ -1582,8 +1582,6 @@ fun AIChatPanel(
                 onNavigateToTerminal = onNavigateToTerminal,
                 onNavigateToGit = onNavigateToGit,
                 onNavigateToBrowser = onNavigateToBrowser,
-                currentMode = currentMode,
-                onToggleMode = { viewModel.setSessionMode(it) },
                 connectionState = connectionState?.takeIf { isRemote },
                 showMenuButton = showMenuButton,
                 terminalActive = terminalActive,
@@ -1819,8 +1817,6 @@ fun AIChatPanel(
                 onSelectModel = { p, m ->
                     viewModel.setSessionProviderModel(p, m)
                 },
-                currentMode = currentMode,
-                onToggleMode = { viewModel.setSessionMode(it) },
                 currentGoal = currentGoal,
                 onSetGoalPaused = { viewModel.setGoalPaused(it) },
                 onClearGoal = { viewModel.clearGoal() },
