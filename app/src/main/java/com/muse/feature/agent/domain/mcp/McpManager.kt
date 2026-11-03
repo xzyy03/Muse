@@ -247,18 +247,21 @@ class McpManager @Inject constructor(
         return if (active.mode == ExecutionMode.REMOTE_SSH) resolveDefaultContainerProfile() else active
     }
 
-    /** 当前激活 profile：按 id 从配置列表解析，找不到回退内置 Alpine。 */
+    /** 当前激活 profile：按 id 从配置列表解析；id 无值/已失效时回退列表首项（与执行引擎一致）。 */
     private suspend fun currentActiveProfile(): ContainerProfile {
         val id = containerSettingsRepository.activeProfileIdFlow.first()
         val profiles = containerSettingsRepository.customProfilesFlow.first()
-        return profiles.firstOrNull { it.id == id } ?: ContainerProfile.NONE
+        return profiles.firstOrNull { it.id == id }
+            ?: profiles.firstOrNull()
+            ?: ContainerProfile.NONE
     }
 
-    /** 默认容器：设置的 id 且为本地 PRoot 模式；找不到/被删/是远程则回退内置 Alpine。 */
+    /** 默认容器：设置的 id 且为本地 PRoot 模式；id 未设置或已失效时回退首个本地 PRoot 容器。 */
     private suspend fun resolveDefaultContainerProfile(): ContainerProfile {
         val id = containerSettingsRepository.defaultContainerIdFlow.first()
         val profiles = containerSettingsRepository.customProfilesFlow.first()
         return profiles.firstOrNull { it.id == id && it.mode == ExecutionMode.LOCAL_PROOT }
+            ?: profiles.firstOrNull { it.mode == ExecutionMode.LOCAL_PROOT }
             ?: ContainerProfile.NONE
     }
 
