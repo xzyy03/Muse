@@ -25,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +44,7 @@ import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import com.muse.R
 import com.muse.core.theme.Spacing
+import com.muse.feature.settings.data.repository.ChatBubbleStyle
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.Check
 import compose.icons.feathericons.Copy
@@ -85,17 +87,40 @@ internal object ChatStyle {
     val rowIconSize = 16.dp
 }
 
-/** 用户消息底色：QQ 风白底气泡，深色主题下自动变成深色卡面。 */
-@Composable
-internal fun chatUserBubbleColor(): Color = MaterialTheme.colorScheme.surface
+/** 当前生效的聊天气泡样式；由设置页写入，CompositionLocal 供消息区读取。 */
+val LocalChatBubbleStyle = staticCompositionLocalOf { ChatBubbleStyle.CLASSIC }
 
-/** 用户气泡描边色：跟随正文颜色，浅色为黑、深色为浅色。 */
+/** 用户消息底色：按当前气泡样式取色，未选样或主题不明时回退 QQ 风白底。 */
 @Composable
-internal fun chatUserBubbleBorderColor(): Color = MaterialTheme.colorScheme.onSurface
+internal fun chatUserBubbleColor(): Color = when (LocalChatBubbleStyle.current) {
+    ChatBubbleStyle.CLASSIC, ChatBubbleStyle.SHADOW, ChatBubbleStyle.MINIMAL -> MaterialTheme.colorScheme.surface
+    ChatBubbleStyle.DARK -> Color(0xFF2B2B2E)
+    ChatBubbleStyle.SQUARE -> MaterialTheme.colorScheme.surface
+    ChatBubbleStyle.GREEN -> Color(0xFF95EC69)
+    ChatBubbleStyle.VALENTINE -> MaterialTheme.colorScheme.surfaceVariant
+    ChatBubbleStyle.ORIGINAL -> MaterialTheme.colorScheme.primaryContainer
+}
+
+/** 用户气泡描边色：按样式返回；无描边样式返回透明（调用方不再画边）。 */
+@Composable
+internal fun chatUserBubbleBorderColor(): Color = when (LocalChatBubbleStyle.current) {
+    ChatBubbleStyle.CLASSIC -> MaterialTheme.colorScheme.onSurface
+    ChatBubbleStyle.SHADOW -> Color.Transparent
+    ChatBubbleStyle.MINIMAL -> Color.Transparent
+    ChatBubbleStyle.DARK -> Color.Transparent
+    ChatBubbleStyle.SQUARE -> Color(0xFF2B2B2E)
+    ChatBubbleStyle.GREEN -> Color.Transparent
+    ChatBubbleStyle.VALENTINE -> MaterialTheme.colorScheme.outline
+    ChatBubbleStyle.ORIGINAL -> Color.Transparent
+}
 
 /** 用户消息文字：白底黑字（深色主题为浅色字）。 */
 @Composable
-internal fun chatUserBubbleTextColor(): Color = MaterialTheme.colorScheme.onSurface
+internal fun chatUserBubbleTextColor(): Color = when (LocalChatBubbleStyle.current) {
+    ChatBubbleStyle.DARK -> Color(0xFFF2F2F4)
+    ChatBubbleStyle.ORIGINAL -> MaterialTheme.colorScheme.onPrimaryContainer
+    else -> MaterialTheme.colorScheme.onSurface
+}
 
 /** 1px 细线：扁平风格里唯一的分组手段。 */
 @Composable

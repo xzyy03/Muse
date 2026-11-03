@@ -291,6 +291,7 @@
     <string name="theme_dynamic_color_unsupported">需要 Android 12 及以上系统</string>
     <string name="settings_background_image">背景图</string>
     <string name="settings_background_image_none">未设置</string>
+    <string name="settings_chat_bubble">聊天气泡</string>
     <string name="settings_background_image_alpha">透明度</string>
     <string name="settings_background_image_pick">选择图片</string>
     <string name="settings_background_image_remove">移除背景</string>

@@ -88,6 +88,8 @@ import com.muse.feature.settings.data.repository.StartupSessionMode
 import com.muse.feature.settings.data.repository.ThemeSettingsRepository
 import com.muse.feature.settings.data.repository.ToolSafetySettingsRepository
 import com.muse.feature.settings.data.repository.BackgroundSettingsRepository
+import com.muse.feature.settings.data.repository.ChatBubbleSettingsRepository
+import com.muse.feature.settings.data.repository.ChatBubbleStyle
 import com.muse.feature.settings.data.repository.ImageGenModelSettingsRepository
 import com.muse.feature.settings.data.repository.VisionModelSettingsRepository
 import com.muse.feature.workspace.domain.model.RemoteConnection
@@ -361,6 +363,7 @@ class SettingsViewModel @Inject constructor(
     private val logSettingsRepository: LogSettingsRepository,
     private val themeSettingsRepository: ThemeSettingsRepository,
     private val backgroundSettingsRepository: BackgroundSettingsRepository,
+    private val chatBubbleSettingsRepository: ChatBubbleSettingsRepository,
     private val keepaliveSettingsRepository: KeepaliveSettingsRepository,
     private val screenOnSettingsRepository: ScreenOnSettingsRepository,
     private val agentSoundSettingsRepository: AgentSoundSettingsRepository,
@@ -619,6 +622,10 @@ class SettingsViewModel @Inject constructor(
     /** 背景图不透明度（0~0.2，实际范围由 BackgroundSettingsRepository 的 MIN/MAX 决定），实时写 DataStore，全局背景同步变化。 */
     private val _backgroundAlpha = MutableStateFlow(BackgroundSettingsRepository.DEFAULT_ALPHA)
     val backgroundAlpha: StateFlow<Float> = _backgroundAlpha.asStateFlow()
+
+    /** 当前聊天气泡样式，实时写 DataStore，消息区立即生效。 */
+    private val _chatBubbleStyle = MutableStateFlow(ChatBubbleStyle.CLASSIC)
+    val chatBubbleStyle: StateFlow<ChatBubbleStyle> = _chatBubbleStyle.asStateFlow()
 
     /** 透明度落盘的节流 job，见 [setBackgroundAlpha]。 */
     private var backgroundAlphaWriteJob: Job? = null
@@ -1056,6 +1063,12 @@ class SettingsViewModel @Inject constructor(
             launch {
                 backgroundSettingsRepository.alphaFlow.collectLatest {
                     _backgroundAlpha.value = it
+                }
+            }
+
+            launch {
+                chatBubbleSettingsRepository.styleFlow.collectLatest {
+                    _chatBubbleStyle.value = it
                 }
             }
 
@@ -2228,6 +2241,13 @@ class SettingsViewModel @Inject constructor(
         backgroundAlphaWriteJob = viewModelScope.launch {
             delay(BACKGROUND_ALPHA_WRITE_DEBOUNCE_MS)
             backgroundSettingsRepository.setBackgroundAlpha(alpha)
+        }
+    }
+
+    /** 切换聊天气泡样式；立即写 DataStore，消息区随 Flow 同步重绘。 */
+    fun setChatBubbleStyle(style: ChatBubbleStyle) {
+        viewModelScope.launch {
+            chatBubbleSettingsRepository.setStyle(style)
         }
     }
 

@@ -77,6 +77,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.muse.R
+import com.muse.feature.settings.data.repository.ChatBubbleStyle
 import com.muse.core.theme.Spacing
 import com.muse.core.ui.ImageViewerHost
 import com.muse.core.ui.LocalImageViewer
@@ -727,6 +728,8 @@ fun AIChatPanel(
     val rewindConflicts by viewModel.rewindConflicts.collectAsStateWithLifecycle()
     val providers = (settingsViewModel?.providers?.collectAsStateWithLifecycle()?.value ?: emptyList()).filter { it.isEnabled }
     val modelMetadata = settingsViewModel?.modelMetadata?.collectAsStateWithLifecycle()?.value.orEmpty()
+    val chatBubbleStyle = settingsViewModel?.chatBubbleStyle?.collectAsStateWithLifecycle()?.value
+        ?: ChatBubbleStyle.CLASSIC
     val sessionProviderModel by viewModel.currentSessionProviderModel.collectAsStateWithLifecycle()
     val defaultProviderId = settingsViewModel?.defaultModelProviderId?.collectAsStateWithLifecycle()?.value ?: ""
     val defaultModelName = settingsViewModel?.defaultModel?.collectAsStateWithLifecycle()?.value ?: ""
@@ -1556,6 +1559,7 @@ fun AIChatPanel(
     }
 
     CompositionLocalProvider(
+        LocalChatBubbleStyle provides chatBubbleStyle,
         LocalMarkdownImageTransformer provides markdownImageTransformer,
         LocalImageViewer provides imageViewerState,
         LocalAttachmentOpener provides attachmentOpener,

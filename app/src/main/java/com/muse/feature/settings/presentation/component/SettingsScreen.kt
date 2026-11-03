@@ -85,6 +85,7 @@ import com.muse.feature.agent.presentation.component.MarkdownRenderCache
 import com.muse.feature.backup.presentation.BackupScreen
 import com.muse.feature.settings.data.repository.AppThemeMode
 import com.muse.feature.settings.data.repository.BackgroundSettingsRepository
+import com.muse.feature.settings.data.repository.ChatBubbleStyle
 import com.muse.feature.settings.domain.model.AIProviderConfig
 import com.muse.feature.settings.domain.model.ModelMetadata
 import com.muse.feature.settings.presentation.SettingsViewModel
@@ -252,6 +253,7 @@ fun SettingsScreen(
     val dynamicColorEnabled by viewModel.dynamicColorEnabled.collectAsStateWithLifecycle()
     val backgroundImagePath by viewModel.backgroundImagePath.collectAsStateWithLifecycle()
     val backgroundAlpha by viewModel.backgroundAlpha.collectAsStateWithLifecycle()
+    val chatBubbleStyle by viewModel.chatBubbleStyle.collectAsStateWithLifecycle()
     val languageTag by viewModel.languageTag.collectAsStateWithLifecycle()
     val visionProviderId by viewModel.visionProviderId.collectAsStateWithLifecycle()
     val visionModel by viewModel.visionModel.collectAsStateWithLifecycle()
@@ -413,6 +415,7 @@ fun SettingsScreen(
     var showImageSourceSheet by remember { mutableStateOf(false) }
     var showThemeSheet by remember { mutableStateOf(false) }
     var showBackgroundSheet by remember { mutableStateOf(false) }
+    var showChatBubbleSheet by remember { mutableStateOf(false) }
     var showLanguageSheet by remember { mutableStateOf(false) }
     var showResetTokenStats by remember { mutableStateOf(false) }
 
@@ -498,9 +501,11 @@ fun SettingsScreen(
             currentLanguageDisplayName = currentLanguageDisplayName,
             backgroundImagePath = backgroundImagePath,
             backgroundAlpha = backgroundAlpha,
+            chatBubbleStyle = chatBubbleStyle,
             onOpenThemeSheet = { showThemeSheet = true },
             onOpenTerminalSettingsSheet = { showTerminalSettingsSheet = true },
             onOpenBackgroundSheet = { showBackgroundSheet = true },
+            onOpenChatBubbleSheet = { showChatBubbleSheet = true },
             onOpenLanguageSheet = { showLanguageSheet = true },
             onOpenManual = {
                 context.startActivity(
@@ -1381,6 +1386,14 @@ fun SettingsScreen(
         )
     }
 
+    if (showChatBubbleSheet) {
+        ChatBubbleStyleSheet(
+            selected = chatBubbleStyle,
+            onSelect = { viewModel.setChatBubbleStyle(it) },
+            onDismiss = { showChatBubbleSheet = false }
+        )
+    }
+
     if (showLanguageSheet) {
         LanguageSelectionSheet(
             currentTag = languageTag,
@@ -1642,9 +1655,11 @@ internal fun SettingsMenu(
     currentLanguageDisplayName: String,
     backgroundImagePath: String?,
     backgroundAlpha: Float,
+    chatBubbleStyle: ChatBubbleStyle,
     onOpenThemeSheet: () -> Unit,
     onOpenTerminalSettingsSheet: () -> Unit,
     onOpenBackgroundSheet: () -> Unit,
+    onOpenChatBubbleSheet: () -> Unit,
     onOpenLanguageSheet: () -> Unit,
     onOpenManual: () -> Unit,
     onRerunOnboarding: () -> Unit,
@@ -1706,6 +1721,19 @@ internal fun SettingsMenu(
                     Text(
                         text = if (backgroundImagePath != null) "${BackgroundSettingsRepository.alphaToSlider(backgroundAlpha).toInt()}%"
                         else stringResource(R.string.settings_background_image_none),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.semanticColors.subtleText
+                    )
+                }
+            )
+            SettingsDivider()
+            SettingsRow(
+                icon = FeatherIcons.MessageSquare,
+                title = stringResource(R.string.settings_chat_bubble),
+                onClick = onOpenChatBubbleSheet,
+                trailing = {
+                    Text(
+                        text = chatBubbleStyle.displayName,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.semanticColors.subtleText
                     )

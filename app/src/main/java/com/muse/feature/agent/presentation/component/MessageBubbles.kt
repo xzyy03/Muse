@@ -345,29 +345,11 @@ internal fun AgentMessageItem(
                                 )
                             }
                         } else if (isUser) {
-                            // 用户消息：右对齐的白底气泡 + 黑字（QQ 风），深色主题自动跟随主题表面色。
-                            Surface(
-                                shape = RoundedCornerShape(ChatStyle.bubbleCorner),
-                                color = chatUserBubbleColor(),
-                                border = BorderStroke(1.5.dp, chatUserBubbleBorderColor()),
-                                modifier = Modifier.widthIn(max = maxUserBubbleWidth)
-                            ) {
-                                SelectionContainer {
-                                    CompositionLocalProvider(
-                                        LocalTextSelectionColors provides TextSelectionColors(
-                                            handleColor = MaterialTheme.colorScheme.primary,
-                                            backgroundColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.24f),
-                                        )
-                                    ) {
-                                        Text(
-                                            text = message.content,
-                                            color = chatUserBubbleTextColor(),
-                                            style = MaterialTheme.typography.bodyMedium.copy(lineHeight = 20.sp),
-                                            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)
-                                        )
-                                    }
-                                }
-                            }
+                            // 用户消息：右对齐气泡，外观由「通用设置 → 聊天气泡」所选样式决定。
+                            UserMessageBubble(
+                                text = message.content,
+                                maxWidth = maxUserBubbleWidth
+                            )
                         } else {
                             // 助手正文：不套容器，直接铺在页面底色上（文档流）。分块之间只留一个段落间距，
                             // 整条消息看起来仍是连续的一段正文。
