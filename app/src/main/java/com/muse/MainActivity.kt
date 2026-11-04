@@ -115,6 +115,7 @@ import com.muse.feature.terminal.domain.TerminalKeepaliveService
 import com.muse.feature.terminal.presentation.TerminalViewModel
 import com.muse.feature.terminal.presentation.component.TerminalScreen
 import com.muse.feature.workspace.presentation.WorkspaceViewModel
+import com.muse.feature.workspace.presentation.component.WorkspaceBrowserScreen
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -701,6 +702,12 @@ fun AppNavigation(
                                     onNavigateToMcp = {
                                         navController.navigate("settings?section=mcp&from=chat")
                                     },
+                                    onOpenWorkspaceBrowser = { rootPath, sessionId ->
+                                        navController.navigate(
+                                            "workspace-files?root=" + android.net.Uri.encode(rootPath) +
+                                                "&session=" + android.net.Uri.encode(sessionId)
+                                        )
+                                    },
                                     terminalActive = paneOpen && paneKind == WorkbenchPaneKind.TERMINAL,
                                     gitActive = paneOpen && paneKind == WorkbenchPaneKind.GIT,
                                     browserActive = paneOpen && paneKind == WorkbenchPaneKind.BROWSER,
@@ -811,6 +818,32 @@ fun AppNavigation(
                         }
                     }
                 )
+            }
+            composable(
+                "workspace-files?root={root}&session={session}",
+                arguments = listOf(
+                    androidx.navigation.navArgument("root") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = ""
+                    },
+                    androidx.navigation.navArgument("session") {
+                        type = androidx.navigation.NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { entry ->
+                // 路由参数经过 Uri.encode，取出后需解码还原成原始路径。
+                val rootPath = entry.arguments?.getString("root").orEmpty()
+                    .let { if (it.isBlank()) null else android.net.Uri.decode(it) }
+                val sessionId = entry.arguments?.getString("session").orEmpty()
+                    .let { if (it.isBlank()) "" else android.net.Uri.decode(it) }
+                CompactTypography(0.9f) {
+                    WorkspaceBrowserScreen(
+                        sessionId = sessionId,
+                        rootPath = rootPath,
+                        onNavigateBack = { navController.popBackStack() }
+                    )
+                }
             }
             composable("browser") {
                 val browserViewModel: com.muse.feature.browser.presentation.BrowserViewModel = hiltViewModel()

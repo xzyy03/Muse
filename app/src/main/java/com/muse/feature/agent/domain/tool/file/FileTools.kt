@@ -14,7 +14,9 @@ import com.muse.feature.agent.domain.tool.WorkspaceFileLock
 import com.muse.feature.agent.domain.tool.staleFileMessage
 import com.muse.core.util.FileLogger
 import com.muse.core.util.LineDiff
+import com.muse.feature.workspace.data.repository.SessionProjectBindingRepository
 import com.muse.feature.workspace.domain.FileAccessProvider
+import com.muse.feature.workspace.domain.WorkspacePathMapper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonArray
@@ -176,7 +178,9 @@ class ReadFileTool @Inject constructor(
 class WriteFileTool @Inject constructor(
     private val fileAccess: FileAccessProvider,
     private val fileLock: WorkspaceFileLock,
-    private val versions: FileVersionRegistry
+    private val versions: FileVersionRegistry,
+    private val pathMapper: WorkspacePathMapper,
+    private val projectBinding: SessionProjectBindingRepository
 ) : AgentTool() {
     override val name = "writeFile"
     override val description = "写入完整文件内容，文件不存在时自动创建（含父目录）。局部修改请用 editFile。"
@@ -227,6 +231,7 @@ class WriteFileTool @Inject constructor(
                     .onFailure { FileLogger.w(TAG, "write_file 写后登记版本失败: $key", it) }
                     .getOrNull()
                     ?.let { versions.record(context.sessionId, key, it) }
+                bindProjectOf(path, context.sessionId)
             }
             result
         }
@@ -240,6 +245,27 @@ class WriteFileTool @Inject constructor(
         val path = args["path"]?.jsonPrimitive?.contentOrNull
             ?: return ToolResult.Error("缺少必需参数：path", "MISSING_PATH")
         return performWrite(path, args)
+    }
+
+    /**
+     * 把本次写入所在的项目目录绑定给会话，供「长按工作区图标」直达。
+     *
+     * 项目目录指工作区根下的第一层子目录（`~/workspace/<项目>`）；文件直接写在
+     * 工作区根或容器其它路径时不绑定。绑定失败不影响写入结果。
+     */
+    private suspend fun bindProjectOf(path: String, sessionId: String?) {
+        if (sessionId.isNullOrBlank()) return
+        runCatching {
+            val hostFile = pathMapper.toHostFile(path)
+            val workspaceRoot = pathMapper.toHostFile(WorkspacePathMapper.CONTAINER_ROOT)
+            val rootPath = workspaceRoot.absolutePath.trimEnd('/')
+            val filePath = hostFile.absolutePath
+            if (!filePath.startsWith("$rootPath/")) return@runCatching
+            val relative = filePath.removePrefix("$rootPath/")
+            val projectName = relative.substringBefore('/', missingDelimiterValue = "")
+            if (projectName.isBlank()) return@runCatching
+            projectBinding.bind(sessionId, "$rootPath/$projectName")
+        }.onFailure { FileLogger.w(TAG, "绑定项目目录失败: $path", it) }
     }
 
     /**

@@ -64,6 +64,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.ClipEntry
 import androidx.compose.ui.platform.LocalClipboard
@@ -161,6 +162,10 @@ internal fun ChatInputBar(
     workspaceViewModel: WorkspaceViewModel?,
     hasRunningSessions: () -> Boolean,
     onSwitchWorkspaceConfirmed: () -> Unit = {},
+    /** 长按工作区图标：打开当前会话工作区的文件浏览页；参数为该会话的容器路径。 */
+    onOpenWorkspaceBrowser: ((String, String) -> Unit)? = null,
+    /** 当前会话所属工作区的宿主路径（无会话时为空）；长按浏览用它定位项目目录。 */
+    workspacePath: String = "",
     activeProvider: AIProviderConfig?,
     providers: List<AIProviderConfig>,
     modelMetadata: Map<String, ModelMetadata>,
@@ -212,6 +217,7 @@ internal fun ChatInputBar(
 ) {
     val hasContent = value.isNotBlank() || pendingAttachments.isNotEmpty()
     val canSend = hasContent
+    val context = LocalContext.current
     var showAttachmentSheet by remember { mutableStateOf(false) }
     var showFullScreenInput by remember { mutableStateOf(false) }
     // TextField 的 String 重载在整串替换时会保留旧 selection 下标（点快捷命令补全时光标会停在中间），
@@ -592,6 +598,19 @@ internal fun ChatInputBar(
                                 viewModel = workspaceViewModel,
                                 hasRunningSessions = hasRunningSessions,
                                 onSwitchConfirmed = onSwitchWorkspaceConfirmed,
+                                onLongPress = onOpenWorkspaceBrowser?.let { cb ->
+                                    {
+                                        if (workspacePath.isBlank()) {
+                                            android.widget.Toast.makeText(
+                                                context,
+                                                "当前对话尚未创建工作区",
+                                                android.widget.Toast.LENGTH_SHORT
+                                            ).show()
+                                        } else {
+                                            cb(workspacePath, sessionId)
+                                        }
+                                    }
+                                },
                                 modifier = Modifier.size(36.dp),
                                 iconSize = 20.dp
                             )

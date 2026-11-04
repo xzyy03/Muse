@@ -6,6 +6,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -121,21 +122,42 @@ fun WorkspaceIconButton(
     viewModel: WorkspaceViewModel,
     hasRunningSessions: () -> Boolean = { false },
     onSwitchConfirmed: () -> Unit = {},
+    onLongPress: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     iconSize: Dp = 24.dp
 ) {
     var showSheet by remember { mutableStateOf(false) }
 
-    IconButton(
-        onClick = { showSheet = true },
-        modifier = modifier
-    ) {
-        Icon(
-            FeatherIcons.Folder,
-            contentDescription = stringResource(R.string.workspace_open),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(iconSize)
-        )
+    val openSheet = { showSheet = true }
+
+    // 长按需与单击共存：IconButton 自身的点击与外部 combinedClickable 会抢事件，
+    // 故按有无长按回调分两条路径，有长按时用 Box + combinedClickable 统一处理。
+    if (onLongPress != null) {
+        Box(
+            modifier = modifier
+                .size(48.dp)
+                .combinedClickable(onClick = openSheet, onLongClick = onLongPress),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                FeatherIcons.Folder,
+                contentDescription = stringResource(R.string.workspace_open),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(iconSize)
+            )
+        }
+    } else {
+        IconButton(
+            onClick = openSheet,
+            modifier = modifier
+        ) {
+            Icon(
+                FeatherIcons.Folder,
+                contentDescription = stringResource(R.string.workspace_open),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(iconSize)
+            )
+        }
     }
 
     // 远程工作区路径/默认工作区创建失败提示：消费后清除，避免重复弹 Toast

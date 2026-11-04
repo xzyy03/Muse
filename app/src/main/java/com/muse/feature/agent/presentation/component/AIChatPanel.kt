@@ -669,6 +669,8 @@ fun AIChatPanel(
     onNavigateToProviders: () -> Unit = {},
     /** 点击输入区 MCP 图标：跳到设置的「MCP 服务器」页。 */
     onNavigateToMcp: () -> Unit = {},
+    /** 长按输入栏工作区图标：打开当前会话工作区的文件浏览页。 */
+    onOpenWorkspaceBrowser: (String, String) -> Unit = { _, _ -> },
     settingsViewModel: SettingsViewModel? = null,
     workspaceViewModel: WorkspaceViewModel? = null,
     onOpenDrawer: () -> Unit,
@@ -1815,6 +1817,10 @@ fun AIChatPanel(
                 workspaceViewModel = workspaceViewModel,
                 hasRunningSessions = { viewModel.hasRunningSessionsInCurrentWorkspace() },
                 onSwitchWorkspaceConfirmed = { viewModel.stopAllAndCloseTerminal() },
+                onOpenWorkspaceBrowser = { rootPath, sid -> onOpenWorkspaceBrowser(rootPath, sid) },
+                workspacePath = currentSession?.workspacePath
+                    ?.takeIf { it.isNotBlank() }
+                    ?: currentWorkspace?.path.orEmpty(),
                 activeProvider = activeProvider,
                 providers = providers,
                 modelMetadata = modelMetadata,
