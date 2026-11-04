@@ -292,6 +292,14 @@
     <string name="settings_background_image">背景图</string>
     <string name="settings_background_image_none">未设置</string>
     <string name="settings_chat_bubble">聊天气泡</string>
+    <string name="pet_overlay_title">悬浮窗</string>
+    <string name="pet_overlay_desc">在桌面显示可拖动的悬浮图标</string>
+    <string name="pet_overlay_channel_name">悬浮窗</string>
+    <string name="pet_overlay_channel_desc">保持悬浮窗运行</string>
+    <string name="pet_overlay_notification_title">悬浮窗运行中</string>
+    <string name="pet_overlay_permission_needed">需要「显示在其他应用上层」权限</string>
+    <string name="pet_overlay_size">大小</string>
+    <string name="pet_overlay_enabled">显示悬浮窗</string>
     <string name="settings_background_image_alpha">透明度</string>
     <string name="settings_background_image_pick">选择图片</string>
     <string name="settings_background_image_remove">移除背景</string>

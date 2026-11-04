@@ -90,6 +90,7 @@ import com.muse.feature.settings.data.repository.ToolSafetySettingsRepository
 import com.muse.feature.settings.data.repository.BackgroundSettingsRepository
 import com.muse.feature.settings.data.repository.ChatBubbleSettingsRepository
 import com.muse.feature.settings.data.repository.ChatBubbleStyle
+import com.muse.feature.pet.data.PetOverlaySettingsRepository
 import com.muse.feature.settings.data.repository.ImageGenModelSettingsRepository
 import com.muse.feature.settings.data.repository.VisionModelSettingsRepository
 import com.muse.feature.workspace.domain.model.RemoteConnection
@@ -364,6 +365,7 @@ class SettingsViewModel @Inject constructor(
     private val themeSettingsRepository: ThemeSettingsRepository,
     private val backgroundSettingsRepository: BackgroundSettingsRepository,
     private val chatBubbleSettingsRepository: ChatBubbleSettingsRepository,
+    private val petOverlaySettingsRepository: PetOverlaySettingsRepository,
     private val keepaliveSettingsRepository: KeepaliveSettingsRepository,
     private val screenOnSettingsRepository: ScreenOnSettingsRepository,
     private val agentSoundSettingsRepository: AgentSoundSettingsRepository,
@@ -626,6 +628,14 @@ class SettingsViewModel @Inject constructor(
     /** 当前聊天气泡样式，实时写 DataStore，消息区立即生效。 */
     private val _chatBubbleStyle = MutableStateFlow(ChatBubbleStyle.CLASSIC)
     val chatBubbleStyle: StateFlow<ChatBubbleStyle> = _chatBubbleStyle.asStateFlow()
+
+    /** 鲸娘悬浮窗是否开启。 */
+    private val _petOverlayEnabled = MutableStateFlow(true)
+    val petOverlayEnabled: StateFlow<Boolean> = _petOverlayEnabled.asStateFlow()
+
+    /** 鲸娘悬浮窗尺寸（dp）。 */
+    private val _petOverlaySizeDp = MutableStateFlow(PetOverlaySettingsRepository.DEFAULT_SIZE_DP)
+    val petOverlaySizeDp: StateFlow<Float> = _petOverlaySizeDp.asStateFlow()
 
     /** 透明度落盘的节流 job，见 [setBackgroundAlpha]。 */
     private var backgroundAlphaWriteJob: Job? = null
@@ -1069,6 +1079,18 @@ class SettingsViewModel @Inject constructor(
             launch {
                 chatBubbleSettingsRepository.styleFlow.collectLatest {
                     _chatBubbleStyle.value = it
+                }
+            }
+
+            launch {
+                petOverlaySettingsRepository.enabledFlow.collectLatest {
+                    _petOverlayEnabled.value = it
+                }
+            }
+
+            launch {
+                petOverlaySettingsRepository.sizeDpFlow.collectLatest {
+                    _petOverlaySizeDp.value = it
                 }
             }
 
@@ -2248,6 +2270,20 @@ class SettingsViewModel @Inject constructor(
     fun setChatBubbleStyle(style: ChatBubbleStyle) {
         viewModelScope.launch {
             chatBubbleSettingsRepository.setStyle(style)
+        }
+    }
+
+    /** 开关鲸娘悬浮窗（服务启停由 UI 层负责，因其依赖悬浮权限与 Activity context）。 */
+    fun setPetOverlayEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            petOverlaySettingsRepository.setEnabled(enabled)
+        }
+    }
+
+    /** 调整鲸娘悬浮窗尺寸（dp）。 */
+    fun setPetOverlaySizeDp(sizeDp: Float) {
+        viewModelScope.launch {
+            petOverlaySettingsRepository.setSizeDp(sizeDp)
         }
     }
 

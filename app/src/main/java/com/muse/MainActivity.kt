@@ -120,6 +120,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -167,6 +168,10 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var browserManager: com.muse.feature.agent.domain.tool.browser.BrowserManager
 
+    /** 悬浮窗开关与尺寸：启动时按开关自动拉起。 */
+    @Inject
+    lateinit var petOverlaySettings: com.muse.feature.pet.data.PetOverlaySettingsRepository
+
     override fun attachBaseContext(newBase: android.content.Context) {
         // 在 Activity 创建前同步应用用户选择的语言，确保冷启动也生效。
         // Hilt 尚未注入，直接从 SharedPreferences 同步读取。
@@ -189,6 +194,15 @@ class MainActivity : ComponentActivity() {
         // 绘制到系统状态栏/导航栏之下，让应用背景与系统栏融为一体（消除割裂的色块）。
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+
+        // 一打开 App 就拉起悬浮窗（开关默认开启，需已授予悬浮权限）。
+        lifecycleScope.launch {
+            if (petOverlaySettings.enabledFlow.first() &&
+                android.provider.Settings.canDrawOverlays(this@MainActivity)
+            ) {
+                com.muse.feature.pet.presentation.PetOverlayService.start(this@MainActivity)
+            }
+        }
 
         // 挂载离屏 WebView 隐藏宿主，确保后台/离屏状态下 WebView 也能触发 onAttachedToWindow 完成首帧真实光栅化渲染
         val hiddenHost = android.widget.FrameLayout(this).apply {

@@ -45,6 +45,7 @@ import compose.icons.feathericons.Folder
 import compose.icons.feathericons.Power
 import compose.icons.feathericons.RefreshCw
 import compose.icons.feathericons.Shield
+import compose.icons.feathericons.Smile
 import compose.icons.feathericons.Sun
 import compose.icons.feathericons.Terminal
 import compose.icons.feathericons.Zap
@@ -62,7 +63,8 @@ internal fun AppPermissionsSection(
     shizukuState: ShizukuState,
     onRequestShizukuPermission: () -> Unit,
     onOpenShizuku: () -> Unit,
-    onRefreshShizuku: () -> Unit
+    onRefreshShizuku: () -> Unit,
+    onOpenPetOverlay: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -180,6 +182,35 @@ internal fun AppPermissionsSection(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+            )
+            SettingsDivider()
+            SettingsRow(
+                icon = FeatherIcons.Smile,
+                title = stringResource(R.string.pet_overlay_title),
+                subtitle = stringResource(R.string.pet_overlay_desc),
+                onClick = {
+                    // 未授予悬浮权限时先引导授权，已授权直接进设置页。
+                    if (!Settings.canDrawOverlays(context)) {
+                        runCatching {
+                            context.startActivity(
+                                Intent(
+                                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                    Uri.parse("package:${context.packageName}")
+                                )
+                            )
+                        }
+                    } else {
+                        onOpenPetOverlay()
+                    }
+                },
+                trailing = {
+                    var overlayAllowed by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
+                    LifecycleResumeEffect(Unit) {
+                        overlayAllowed = Settings.canDrawOverlays(context)
+                        onPauseOrDispose { }
+                    }
+                    PermissionStatusText(allowed = overlayAllowed)
                 }
             )
         }

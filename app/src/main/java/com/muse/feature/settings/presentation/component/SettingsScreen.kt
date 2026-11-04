@@ -84,6 +84,7 @@ import com.muse.feature.agent.presentation.component.MarkdownContent
 import com.muse.feature.agent.presentation.component.MarkdownRenderCache
 import com.muse.feature.backup.presentation.BackupScreen
 import com.muse.feature.settings.data.repository.AppThemeMode
+import com.muse.feature.pet.presentation.PetOverlayService
 import com.muse.feature.settings.data.repository.BackgroundSettingsRepository
 import com.muse.feature.settings.data.repository.ChatBubbleStyle
 import com.muse.feature.settings.domain.model.AIProviderConfig
@@ -254,6 +255,8 @@ fun SettingsScreen(
     val backgroundImagePath by viewModel.backgroundImagePath.collectAsStateWithLifecycle()
     val backgroundAlpha by viewModel.backgroundAlpha.collectAsStateWithLifecycle()
     val chatBubbleStyle by viewModel.chatBubbleStyle.collectAsStateWithLifecycle()
+    val petOverlayEnabled by viewModel.petOverlayEnabled.collectAsStateWithLifecycle()
+    val petOverlaySizeDp by viewModel.petOverlaySizeDp.collectAsStateWithLifecycle()
     val languageTag by viewModel.languageTag.collectAsStateWithLifecycle()
     val visionProviderId by viewModel.visionProviderId.collectAsStateWithLifecycle()
     val visionModel by viewModel.visionModel.collectAsStateWithLifecycle()
@@ -416,6 +419,7 @@ fun SettingsScreen(
     var showThemeSheet by remember { mutableStateOf(false) }
     var showBackgroundSheet by remember { mutableStateOf(false) }
     var showChatBubbleSheet by remember { mutableStateOf(false) }
+    var showPetOverlaySheet by remember { mutableStateOf(false) }
     var showLanguageSheet by remember { mutableStateOf(false) }
     var showResetTokenStats by remember { mutableStateOf(false) }
 
@@ -1188,11 +1192,18 @@ fun SettingsScreen(
                     val shizukuViewModel: ShizukuViewModel =
                         androidx.hilt.navigation.compose.hiltViewModel()
                     val shizukuState by shizukuViewModel.state.collectAsStateWithLifecycle()
+                    // 悬浮窗开关默认为开：进入权限页时若已授权，自动拉起服务。
+                    androidx.compose.runtime.LaunchedEffect(petOverlayEnabled) {
+                        if (petOverlayEnabled && android.provider.Settings.canDrawOverlays(context)) {
+                            PetOverlayService.start(context)
+                        }
+                    }
                     AppPermissionsSection(
                         shizukuState = shizukuState,
                         onRequestShizukuPermission = { shizukuViewModel.requestPermission() },
                         onOpenShizuku = { shizukuViewModel.openShizukuApp() },
-                        onRefreshShizuku = { shizukuViewModel.refresh() }
+                        onRefreshShizuku = { shizukuViewModel.refresh() },
+                        onOpenPetOverlay = { showPetOverlaySheet = true }
                     )
                 }
                 SettingsSection.BackgroundRun -> BackgroundRunSection(
@@ -1391,6 +1402,25 @@ fun SettingsScreen(
             selected = chatBubbleStyle,
             onSelect = { viewModel.setChatBubbleStyle(it) },
             onDismiss = { showChatBubbleSheet = false }
+        )
+    }
+
+    if (showPetOverlaySheet) {
+        PetOverlaySettingsSheet(
+            enabled = petOverlayEnabled,
+            sizeDp = petOverlaySizeDp,
+            onToggle = { enabled ->
+                viewModel.setPetOverlayEnabled(enabled)
+                if (enabled) {
+                    if (android.provider.Settings.canDrawOverlays(context)) {
+                        PetOverlayService.start(context)
+                    }
+                } else {
+                    PetOverlayService.stop(context)
+                }
+            },
+            onSizeChange = { viewModel.setPetOverlaySizeDp(it) },
+            onDismiss = { showPetOverlaySheet = false }
         )
     }
 
