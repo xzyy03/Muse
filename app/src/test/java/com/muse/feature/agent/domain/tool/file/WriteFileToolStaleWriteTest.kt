@@ -5,7 +5,10 @@ import com.muse.feature.agent.domain.tool.FileVersionRegistry
 import com.muse.feature.agent.domain.tool.STALE_FILE_CODE
 import com.muse.feature.agent.domain.tool.ToolResult
 import com.muse.feature.agent.domain.tool.WorkspaceFileLock
+import com.muse.feature.workspace.data.repository.SessionProjectBindingRepository
+import com.muse.feature.workspace.domain.WorkspacePathMapper
 import com.muse.testutil.TestFileAccessProvider
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
@@ -27,7 +30,13 @@ class WriteFileToolStaleWriteTest {
     private val fileAccess = TestFileAccessProvider()
     private val versions = FileVersionRegistry()
 
-    private fun tool() = WriteFileTool(fileAccess, WorkspaceFileLock(), versions)
+    /** 本测试只关心写前版本校验；路径映射与会话项目绑定用空实现占位。 */
+    private val pathMapper = mockk<WorkspacePathMapper>(relaxed = true)
+    private val projectBinding = mockk<SessionProjectBindingRepository>(relaxed = true)
+
+    private fun tool() = WriteFileTool(
+        fileAccess, WorkspaceFileLock(), versions, pathMapper, projectBinding
+    )
 
     private fun context(sessionId: String) = AgentContext(
         currentFile = null,
