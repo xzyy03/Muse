@@ -8,6 +8,9 @@ import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -83,7 +86,11 @@ internal fun ChatHeader(
     showMenuButton: Boolean = true,
     terminalActive: Boolean = false,
     gitActive: Boolean = false,
-    browserActive: Boolean = false
+    browserActive: Boolean = false,
+    /** 当前供应商名，显示在模型后的括号里。 */
+    providerName: String? = null,
+    /** 点击标题重命名会话。 */
+    onRenameSession: (() -> Unit)? = null
 ) {
     Surface(
         color = MaterialTheme.colorScheme.background
@@ -120,39 +127,58 @@ internal fun ChatHeader(
                 Column(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = if (showMenuButton) 2.dp else 0.dp)
+                        .padding(start = if (showMenuButton) 2.dp else 0.dp),
+                    verticalArrangement = Arrangement.Center
                 ) {
+                    // 标题：点击进入重命名
                     Text(
                         text = sessionTitle,
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 15.sp,
+                            lineHeight = 17.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            letterSpacing = (-0.1).sp
+                        ),
                         color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(Modifier.height(3.dp))
-                    // miuix 风胶囊：模型名装在一枚白底细边药丸里，代替原先的裸文字副标题。
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            if (!modelName.isNullOrBlank()) {
-                                ModelLogoIcon(modelName = modelName, size = 12.dp)
-                            }
-                            Text(
-                                text = modelName?.takeIf { it.isNotBlank() }
-                                    ?: stringResource(R.string.chat_no_model_selected),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = if (onRenameSession != null) {
+                            Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = onRenameSession
                             )
+                        } else Modifier
+                    )
+                    // 副行：模型图标 + 模型名 +（供应商），小号灰字，紧贴标题下方
+                    val subtitle = buildString {
+                        if (!modelName.isNullOrBlank()) append(modelName)
+                        if (!providerName.isNullOrBlank()) {
+                            if (isNotEmpty()) append(" ")
+                            append("(")
+                            append(providerName)
+                            append(")")
                         }
+                        if (isEmpty()) append(stringResource(R.string.chat_no_model_selected))
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(3.dp),
+                        modifier = Modifier.padding(top = 0.dp)
+                    ) {
+                        if (!modelName.isNullOrBlank()) {
+                            ModelLogoIcon(modelName = modelName, size = 11.dp)
+                        }
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontSize = 11.sp,
+                                lineHeight = 13.sp
+                            ),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
                 MemoryChip()

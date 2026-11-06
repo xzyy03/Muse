@@ -40,6 +40,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -701,6 +702,11 @@ fun AIChatPanel(
     val currentSessionState by viewModel.currentSessionState.collectAsStateWithLifecycle()
     val currentSession = currentSessionState
     val sessionTitle = currentSession?.title?.takeIf { it.isNotBlank() } ?: stringResource(R.string.chat_new_session_btn)
+    // 点击标题重命名
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var renameText by remember(currentSession?.id) {
+        mutableStateOf(currentSession?.title.orEmpty())
+    }
     val sessionInputTokens = currentSession?.totalInputTokens ?: 0
     val sessionOutputTokens = currentSession?.totalOutputTokens ?: 0
     val sessionLastInputTokens = currentSession?.lastInputTokens ?: 0
@@ -1578,6 +1584,13 @@ fun AIChatPanel(
             ChatHeader(
                 sessionTitle = sessionTitle,
                 modelName = activeProvider?.effectiveModel,
+                providerName = activeProvider?.name,
+                onRenameSession = currentSession?.let {
+                    {
+                        renameText = it.title
+                        showRenameDialog = true
+                    }
+                },
                 inputTokens = sessionInputTokens,
                 outputTokens = sessionOutputTokens,
                 onOpenDrawer = {
@@ -2006,6 +2019,35 @@ fun AIChatPanel(
         // Dialog 是独立 window、不占父布局尺寸，挂在 Scaffold 之后即可覆盖整屏 ——
         // 平板双栏下不会只盖住聊天列，也不会被 MainActivity 画在最上层的全局背景水印压住。
         ImageViewerHost(state = imageViewerState, load = chatImageLoad)
+
+        if (showRenameDialog && currentSession != null) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { showRenameDialog = false },
+                title = { Text(stringResource(R.string.chat_rename_session)) },
+                text = {
+                    androidx.compose.material3.OutlinedTextField(
+                        value = renameText,
+                        onValueChange = { renameText = it },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            val t = renameText.trim()
+                            if (t.isNotEmpty()) viewModel.renameSession(currentSession.id, t)
+                            showRenameDialog = false
+                        }
+                    ) { Text(stringResource(R.string.common_confirm)) }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { showRenameDialog = false }) {
+                        Text(stringResource(R.string.common_cancel))
+                    }
+                }
+            )
+        }
     }
 }
 

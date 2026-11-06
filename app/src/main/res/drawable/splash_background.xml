@@ -1,9 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- 冷启动背景只用纯色：不放图标，避免先闪一个启动图标再进主界面。 -->
     <item android:drawable="@color/splash_background_color" />
-    <item
-        android:width="96dp"
-        android:height="96dp"
-        android:gravity="center"
-        android:drawable="@mipmap/ic_launcher" />
 </layer-list>
