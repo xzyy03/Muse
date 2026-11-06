@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/icon.webp" width="112" alt="Muse" />
+  <img src="docs/icon-v2.webp" width="112" alt="Muse" />
   <h1 align="center">Muse</h1>
   <p align="center">
     A miuix / HyperOS style UI fork of AiCode, based on jieapi/aicode
