@@ -165,7 +165,12 @@ class ModelMetadataService @Inject constructor(
         }
     }
 
-    /** 目录中匹配不到模型时的兜底：统一视为文本模型，128k 输入 / 64k 输出。 */
+    /**
+     * 目录中匹配不到模型时的兜底：默认视为文本模型，128k 输入 / 64k 输出。
+     *
+     * 视觉能力按模型 id 关键词推断：网关自己拉取的模型（如 `raccoon-xxx`、`sn-glm-5-3`）
+     * 往往不在 models.dev 目录里，一律判成纯文本会让多模态模型不显示 Image 标签。
+     */
     private fun default(type: ProviderType, modelId: String): ModelMetadata = ModelMetadata(
         id = modelId,
         providerId = type.name.lowercase(),
@@ -174,10 +179,16 @@ class ModelMetadataService @Inject constructor(
         inputTokens = DEFAULT_CONTEXT_TOKENS,
         outputTokens = DEFAULT_OUTPUT_TOKENS,
         supportsTools = true,
-        supportsVision = false,
+        supportsVision = inferVisionSupport(modelId),
         supportsReasoning = false,
         source = ModelMetadata.Source.INFERRED
     )
+
+    /** 按 id 里的关键词判断是否支持图片输入；宁可标对常用模型，不盲目全开。 */
+    private fun inferVisionSupport(modelId: String): Boolean {
+        val id = modelId.lowercase()
+        return VISION_ID_KEYWORDS.any { it in id }
+    }
 
     companion object {
         /** reasoning_options 数组（统一成 JsonObject 列表，非数组/空返回空表）。 */
@@ -364,6 +375,20 @@ class ModelMetadataService @Inject constructor(
 
         const val TAG = "ModelMetadataService"
         const val ASSET_FILE_NAME = "api.official.json"
+
+        /**
+         * 判定视觉能力的 id 关键词。
+         *
+         * 只收录「带这些词就确定支持图片输入」的标识：厂商前缀型（glm-4v / qwen-vl / gpt-4o）
+         * 与显式多模态名（vision / multimodal / image）。不含笼统的 `pro`、`max` 等后缀，
+         * 避免把纯文本模型误标成 Image。
+         */
+        private val VISION_ID_KEYWORDS = listOf(
+            "-vl", "vision", "multimodal", "-image-input",
+            "glm-4v", "glm-5v", "qwen-vl", "gpt-4o", "gpt-4.1", "gpt-5",
+            "claude-3", "claude-4", "gemini", "pixtral", "llava", "internvl",
+            "step-1v", "minicpm-v", "yi-vl", "sensenova-6", "doubao-vision"
+        )
 
         /** 承载 models.dev 全量快照的独立数据分支（CI 每日同步，main 只保留人工提交）。 */
         const val MODELS_BRANCH = "data"

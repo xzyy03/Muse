@@ -592,10 +592,10 @@ private fun ModelMetadataTags(metadata: ModelMetadata?) {
             }
             val input = metadata.inputTokens?.takeIf { it > 0 } ?: metadata.contextTokens.takeIf { it > 0 }
             if (input != null) {
-                ModelTag(text = formatTokenLimit(input), icon = FeatherIcons.ArrowUp)
+                ModelTag(text = "入 " + formatTokenLimit(input), icon = FeatherIcons.ArrowUp)
             }
             metadata.outputTokens?.takeIf { it > 0 }?.let { output ->
-                ModelTag(text = formatTokenLimit(output), icon = FeatherIcons.ArrowDown)
+                ModelTag(text = "出 " + formatTokenLimit(output), icon = FeatherIcons.ArrowDown)
             }
         }
     }

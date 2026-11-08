@@ -112,8 +112,8 @@ android {
         //      保活需换 specialUse。
         // 代价：不能上 Google Play。
         targetSdk = 28
-        versionCode = 1829
-        versionName = "1.11.8"
+        versionCode = 1830
+        versionName = "1.11.9"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

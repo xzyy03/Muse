@@ -37,6 +37,10 @@ import com.muse.feature.agent.domain.prompt.PromptFragment
 import com.muse.feature.agent.domain.prompt.PromptFragmentSource
 import compose.icons.FeatherIcons
 import compose.icons.feathericons.ArrowLeft
+import compose.icons.feathericons.Upload
+import androidx.compose.foundation.layout.size
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 提示词片段新建/编辑页：自带顶栏（返回 + 右上角保存），与 [SubAgentEditorScreen] 一致，
@@ -62,6 +66,29 @@ internal fun PromptEditorScreen(
     var description by rememberSaveable { mutableStateOf(initialDescription) }
     var content by rememberSaveable { mutableStateOf(initialContent) }
     var scopeIsProject by rememberSaveable { mutableStateOf(initialScope == PromptFragmentSource.PROJECT) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val importLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        // 在 IO 线程读文件，大文件不卡 UI
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            val text = runCatching {
+                context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+            }.getOrNull()
+            if (text != null) {
+                withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    content = text
+                    // 名称未填时用文件名（去掉扩展名）兜底
+                    if (title.isBlank()) {
+                        val name = queryDisplayName(context, uri)?.substringBeforeLast('.') ?: ""
+                        if (name.isNotBlank()) title = name
+                    }
+                }
+            }
+        }
+    }
 
     val number = numberText.toIntOrNull()
     val numberValid = number != null && number in 0..99
@@ -177,6 +204,34 @@ internal fun PromptEditorScreen(
 
             SettingsGroupHeader(text = stringResource(R.string.prompts_field_content))
             SettingsGroup {
+                // 导入：从文件读入 md / txt 作为片段内容，省去手打长文本。
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = Spacing.lg, end = Spacing.lg, top = 10.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = {
+                            importLauncher.launch(
+                                arrayOf(
+                                    "text/markdown", "text/plain", "text/x-markdown",
+                                    "application/octet-stream"
+                                )
+                            )
+                        }
+                    ) {
+                        Icon(
+                            FeatherIcons.Upload,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Text(
+                            text = stringResource(R.string.prompts_import_file),
+                            modifier = Modifier.padding(start = 6.dp)
+                        )
+                    }
+                }
                 AppTextField(
                     value = content,
                     onValueChange = { content = it },
@@ -190,4 +245,17 @@ internal fun PromptEditorScreen(
             }
         }
     }
+}
+
+/** 读取 content:// URI 的显示文件名；取不到时退回路径末段。 */
+private fun queryDisplayName(context: android.content.Context, uri: android.net.Uri): String? {
+    context.contentResolver
+        .query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME), null, null, null)
+        ?.use { cursor ->
+            if (cursor.moveToFirst()) {
+                val name = cursor.getString(0)
+                if (!name.isNullOrBlank()) return name
+            }
+        }
+    return uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
 }

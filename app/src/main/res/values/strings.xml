@@ -1370,6 +1370,7 @@
     <string name="prompts_field_summary">摘要（可选）</string>
     <string name="prompts_field_summary_placeholder">简述片段内容，不会注入提示词</string>
     <string name="prompts_field_content">片段内容</string>
+    <string name="prompts_import_file">导入文件</string>
     <string name="prompts_field_content_placeholder">写模型要遵守的内容</string>
     <string name="prompts_editor_new">新建提示词</string>
     <string name="prompts_editor_edit">编辑提示词</string>
