@@ -1186,7 +1186,9 @@ fun SettingsScreen(
                     onToggleSafetyInterception = { viewModel.setDisableSafetyInterception(it) },
                     onDeleteProject = { viewModel.deleteProjectRule(it) },
                     onPromote = { viewModel.promoteRuleToGlobal(it) },
-                    onDeleteGlobal = { viewModel.deleteGlobalRule(it) }
+                    onDeleteGlobal = { viewModel.deleteGlobalRule(it) },
+                    onAllowAll = { viewModel.allowAllTools() },
+                    onDisallowAll = { viewModel.disallowAllTools() }
                 )
                 SettingsSection.AppPermissions -> {
                     val shizukuViewModel: ShizukuViewModel =

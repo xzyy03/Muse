@@ -449,6 +449,7 @@
     <string name="common_collapse_action">收起</string>
     <string name="common_reset">重置</string>
     <string name="chat_new_session">新建会话</string>
+    <string name="chat_more_actions">更多操作</string>
     <string name="common_new_tab">新建标签</string>
     <string name="common_show">显示</string>
     <string name="common_local">本地</string>
@@ -1506,6 +1507,10 @@
     <string name="perm_current_project_none">当前项目（未选择）</string>
     <string name="perm_no_project_rules">本项目暂无规则</string>
     <string name="perm_global">全局</string>
+    <string name="perm_allow_all">全部允许</string>
+    <string name="perm_allow_all_desc">开启后所有工具调用都自动允许，不再逐个确认</string>
+    <string name="perm_allow_all_confirm_title">开启「全部允许」？</string>
+    <string name="perm_allow_all_confirm_message">开启后后续所有工具调用都会自动允许，不再逐个弹窗确认，包括之后新增的工具。\n\n这会显著降低安全防护强度，建议仅在完全信任当前任务时使用。</string>
     <string name="perm_no_global_rules">暂无全局规则</string>
     <string name="perm_entire_tool">整个工具</string>
     <string name="perm_deny">禁止</string>

@@ -242,6 +242,34 @@ class PermissionRulesRepository @Inject constructor(
 
     suspend fun removeGlobalRule(rule: PermissionRule) = editGlobal { it.remove(rule) }
 
+    /**
+     * 全部允许：写入一条匹配所有工具、所有参数的全局允许规则。
+     *
+     * 不逐个工具枚举，而是用通配形式 —— 这样后续新增的工具（包括 MCP 动态注册的）
+     * 也自动落在允许范围内，符合「开启后后续所有工具都自动允许」的语义。
+     */
+    suspend fun allowAllTools() {
+        val wildcard = PermissionRule(
+            toolName = PermissionRule.WHOLE_TOOL,
+            pattern = PermissionRule.WHOLE_TOOL,
+            decision = PermissionDecision.ALLOW
+        )
+        editGlobal { if (wildcard !in it) it.add(0, wildcard) }
+        FileLogger.i(TAG, "全局全部允许已开启")
+    }
+
+    /** 关闭「全部允许」：只删除那条通配规则，不碰用户自己加的细粒度规则。 */
+    suspend fun disallowAllTools() {
+        editGlobal { rules ->
+            rules.removeAll {
+                it.decision == PermissionDecision.ALLOW &&
+                    it.toolName == PermissionRule.WHOLE_TOOL &&
+                    it.pattern == PermissionRule.WHOLE_TOOL
+            }
+        }
+        FileLogger.i(TAG, "全局全部允许已关闭")
+    }
+
     suspend fun removeProjectRule(projectName: String, rule: PermissionRule) {
         val workspacePath = workspaceRepository.currentPath()
         editProject(workspacePath) { it.remove(rule) }

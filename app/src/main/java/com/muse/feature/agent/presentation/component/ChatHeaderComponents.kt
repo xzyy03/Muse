@@ -30,6 +30,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import compose.icons.feathericons.MoreHorizontal
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -182,23 +185,13 @@ internal fun ChatHeader(
                     }
                 }
                 MemoryChip()
-                WorkbenchIconButton(
-                    icon = FeatherIcons.Plus,
-                    contentDescription = stringResource(R.string.chat_new_session),
-                    active = false,
-                    onClick = onNewChat
-                )
-                WorkbenchIconButton(
-                    icon = FeatherIcons.GitBranch,
-                    contentDescription = stringResource(R.string.chat_open_git),
-                    active = gitActive,
-                    onClick = onNavigateToGit
-                )
-                WorkbenchIconButton(
-                    icon = FeatherIcons.Terminal,
-                    contentDescription = stringResource(R.string.chat_open_terminal),
-                    active = terminalActive,
-                    onClick = onNavigateToTerminal
+                // 新建 / Git / 终端 收进三点菜单，避免顶栏露太多图标。
+                OverlayMenuButton(
+                    terminalActive = terminalActive,
+                    gitActive = gitActive,
+                    onNewChat = onNewChat,
+                    onNavigateToTerminal = onNavigateToTerminal,
+                    onNavigateToGit = onNavigateToGit
                 )
             }
             // 远程模式：左边 SSH 连接状态，右边 token 累计统计
@@ -236,6 +229,65 @@ private fun WorkbenchIconButton(
             tint = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(20.dp)
         )
+    }
+}
+
+/**
+ * 顶栏三点菜单：把「新建对话 / Git / 终端」收进一个下拉菜单。
+ *
+ * 顶栏宽度有限，三个图标并排会把标题挤得很窄；收进菜单后标题能拿到完整宽度。
+ */
+@Composable
+private fun OverlayMenuButton(
+    terminalActive: Boolean,
+    gitActive: Boolean,
+    onNewChat: () -> Unit,
+    onNavigateToTerminal: () -> Unit,
+    onNavigateToGit: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { expanded = true }, modifier = Modifier.size(36.dp)) {
+            Icon(
+                FeatherIcons.MoreHorizontal,
+                contentDescription = stringResource(R.string.chat_more_actions),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+            containerColor = MaterialTheme.colorScheme.surface
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.chat_new_session)) },
+                leadingIcon = {
+                    Icon(FeatherIcons.Plus, contentDescription = null, modifier = Modifier.size(18.dp))
+                },
+                onClick = { expanded = false; onNewChat() }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.chat_open_git)) },
+                leadingIcon = {
+                    Icon(FeatherIcons.GitBranch, contentDescription = null, modifier = Modifier.size(18.dp))
+                },
+                trailingIcon = if (gitActive) {
+                    { Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape)) }
+                } else null,
+                onClick = { expanded = false; onNavigateToGit() }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.chat_open_terminal)) },
+                leadingIcon = {
+                    Icon(FeatherIcons.Terminal, contentDescription = null, modifier = Modifier.size(18.dp))
+                },
+                trailingIcon = if (terminalActive) {
+                    { Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape)) }
+                } else null,
+                onClick = { expanded = false; onNavigateToTerminal() }
+            )
+        }
     }
 }
 

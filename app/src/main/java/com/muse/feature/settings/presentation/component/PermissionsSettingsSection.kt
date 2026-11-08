@@ -33,6 +33,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.muse.R
@@ -63,12 +66,22 @@ internal fun PermissionsSection(
     onToggleSafetyInterception: (Boolean) -> Unit,
     onDeleteProject: (PermissionRule) -> Unit,
     onPromote: (PermissionRule) -> Unit,
-    onDeleteGlobal: (PermissionRule) -> Unit
+    onDeleteGlobal: (PermissionRule) -> Unit,
+    onAllowAll: () -> Unit = {},
+    onDisallowAll: () -> Unit = {}
 ) {
     var projectExpanded by rememberSaveable { mutableStateOf(true) }
     var globalExpanded by rememberSaveable { mutableStateOf(true) }
     // 开启「禁用安全拦截」前先弹强制确认框（确认按钮 5 秒倒计时）；关闭无需确认。
     var showSafetyConfirm by remember { mutableStateOf(false) }
+    // 「全部允许」开启前也要确认：开启后后续所有工具调用都不再逐个确认。
+    var showAllowAllConfirm by remember { mutableStateOf(false) }
+    // 全部允许 = 全局规则里存在「所有工具 × 整工具 允许」这一条。
+    val allowAllEnabled = globalRules.any {
+        it.decision == PermissionDecision.ALLOW &&
+            it.toolName == PermissionRule.WHOLE_TOOL &&
+            it.pattern == PermissionRule.WHOLE_TOOL
+    }
 
     Column(
         modifier = Modifier
@@ -90,6 +103,20 @@ internal fun PermissionsSection(
                         onCheckedChange = { enabled ->
                             if (enabled) showSafetyConfirm = true
                             else onToggleSafetyInterception(false)
+                        }
+                    )
+                }
+            )
+            SettingsDivider()
+            SettingsRow(
+                icon = FeatherIcons.CheckCircle,
+                title = stringResource(R.string.perm_allow_all),
+                subtitle = stringResource(R.string.perm_allow_all_desc),
+                trailing = {
+                    AppSwitch(
+                        checked = allowAllEnabled,
+                        onCheckedChange = { enabled ->
+                            if (enabled) showAllowAllConfirm = true else onDisallowAll()
                         }
                     )
                 }
@@ -154,6 +181,25 @@ internal fun PermissionsSection(
                 showSafetyConfirm = false
             },
             onDismiss = { showSafetyConfirm = false }
+        )
+    }
+
+    if (showAllowAllConfirm) {
+        AlertDialog(
+            onDismissRequest = { showAllowAllConfirm = false },
+            title = { Text(stringResource(R.string.perm_allow_all_confirm_title)) },
+            text = { Text(stringResource(R.string.perm_allow_all_confirm_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onAllowAll()
+                    showAllowAllConfirm = false
+                }) { Text(stringResource(R.string.common_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAllowAllConfirm = false }) {
+                    Text(stringResource(R.string.common_cancel))
+                }
+            }
         )
     }
 }

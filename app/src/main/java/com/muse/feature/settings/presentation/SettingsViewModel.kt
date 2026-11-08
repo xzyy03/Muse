@@ -2972,6 +2972,16 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { permissionRulesRepository.removeGlobalRule(rule) }
     }
 
+    /** 全部允许：写入通配规则，后续所有工具调用自动允许。 */
+    fun allowAllTools() {
+        viewModelScope.launch { permissionRulesRepository.allowAllTools() }
+    }
+
+    /** 关闭全部允许：只移除那条通配规则。 */
+    fun disallowAllTools() {
+        viewModelScope.launch { permissionRulesRepository.disallowAllTools() }
+    }
+
     fun deleteProjectRule(rule: PermissionRule) {
         val name = currentProjectName.value ?: return
         viewModelScope.launch { permissionRulesRepository.removeProjectRule(name, rule) }
