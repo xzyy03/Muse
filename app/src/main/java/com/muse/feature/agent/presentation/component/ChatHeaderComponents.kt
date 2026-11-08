@@ -272,7 +272,7 @@ private fun OverlayMenuButton(
                     shadowElevation = 0.dp,
                     tonalElevation = 0.dp
                 ) {
-                    Column(modifier = Modifier.width(228.dp).padding(vertical = 6.dp)) {
+                    Column(modifier = Modifier.width(168.dp).padding(vertical = 4.dp)) {
                         HeaderMenuRow(
                             icon = FeatherIcons.Plus,
                             label = stringResource(R.string.chat_new_session),
@@ -280,7 +280,7 @@ private fun OverlayMenuButton(
                             onClick = { expanded = false; onNewChat() }
                         )
                         HorizontalDivider(
-                            modifier = Modifier.padding(start = 52.dp, end = 14.dp),
+                            modifier = Modifier.padding(start = 40.dp, end = 12.dp),
                             thickness = 1.dp,
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
@@ -291,7 +291,7 @@ private fun OverlayMenuButton(
                             onClick = { expanded = false; onNavigateToGit() }
                         )
                         HorizontalDivider(
-                            modifier = Modifier.padding(start = 52.dp, end = 14.dp),
+                            modifier = Modifier.padding(start = 40.dp, end = 12.dp),
                             thickness = 1.dp,
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                         )
@@ -324,26 +324,26 @@ private fun HeaderMenuRow(
                 indication = null,
                 onClick = onClick
             )
-            .padding(horizontal = 18.dp, vertical = 16.dp),
+            .padding(horizontal = 14.dp, vertical = 11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             icon,
             contentDescription = null,
             tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(19.dp)
+            modifier = Modifier.size(15.dp)
         )
-        Spacer(Modifier.width(15.dp))
+        Spacer(Modifier.width(11.dp))
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp),
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f)
         )
         if (active) {
             Box(
                 Modifier
-                    .size(7.dp)
+                    .size(6.dp)
                     .background(MaterialTheme.colorScheme.primary, CircleShape)
             )
         }
