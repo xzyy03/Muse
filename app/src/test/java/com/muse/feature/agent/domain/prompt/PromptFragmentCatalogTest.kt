@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.AssetManager
 import com.muse.feature.agent.domain.container.ContainerInstaller
 import com.muse.feature.workspace.domain.ProjectAicodeRoot
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.After
@@ -49,7 +50,11 @@ class PromptFragmentCatalogTest {
         val projectRoot = mockk<ProjectAicodeRoot>()
         every { projectRoot.forPath(any()) } returns File(workspaceDir, ".muse")
 
-        catalog = PromptFragmentCatalog(context, installer, projectRoot)
+        // 开关仓库：本测试只验证解析/保存/删除/重排，默认视为全部片段都启用。
+        val toggleRepo = mockk<com.muse.feature.settings.data.repository.PromptFragmentToggleRepository>()
+        coEvery { toggleRepo.disabledNumbers() } returns emptySet()
+
+        catalog = PromptFragmentCatalog(context, installer, projectRoot, toggleRepo)
     }
 
     @After
