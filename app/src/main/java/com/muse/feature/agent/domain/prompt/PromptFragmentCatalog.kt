@@ -3,6 +3,7 @@ package com.muse.feature.agent.domain.prompt
 import android.content.Context
 import com.muse.core.util.FileLogger
 import com.muse.feature.agent.domain.container.ContainerInstaller
+import com.muse.feature.settings.data.repository.PromptFragmentToggleRepository
 import com.muse.feature.workspace.domain.ProjectAicodeRoot
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -55,7 +56,8 @@ data class PromptFragment(
 class PromptFragmentCatalog @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val containerInstaller: ContainerInstaller,
-    private val projectAicodeRoot: ProjectAicodeRoot
+    private val projectAicodeRoot: ProjectAicodeRoot,
+    private val toggleRepository: PromptFragmentToggleRepository
 ) {
 
     private val globalDir: File get() = File(containerInstaller.museDir, CUSTOM_DIR)
@@ -97,18 +99,41 @@ class PromptFragmentCatalog @Inject constructor(
         numberedFragments(globalDir)
     )
 
-    /** 静态基线正文：所有生效片段去掉前导注释后按编号拼接。 */
+    /** 静态基线正文：所有生效片段去掉前导注释后按编号拼接；被开关关闭的跳过。 */
     fun renderStatic(projectRoot: String?): String =
-        list(projectRoot)
-            .mapNotNull { it.content.replace(LEADING_COMMENT, "").trim().takeIf { text -> text.isNotEmpty() } }
-            .joinToString("\n\n")
+        joinEnabled(list(projectRoot))
 
-    /** 「仅自定义片段」模式：只取项目层与全局层的自定义片段正文。 */
+    /** 「仅自定义片段」模式：只取项目层与全局层的自定义片段正文；被开关关闭的跳过。 */
     fun renderCustomOnly(projectRoot: String?): String =
-        list(projectRoot)
-            .filter { it.source == PromptFragmentSource.PROJECT || it.source == PromptFragmentSource.GLOBAL }
+        joinEnabled(
+            list(projectRoot).filter {
+                it.source == PromptFragmentSource.PROJECT || it.source == PromptFragmentSource.GLOBAL
+            }
+        )
+
+    /** 过滤掉被关闭的片段后拼接正文。 */
+    private fun joinEnabled(fragments: List<PromptFragment>): String {
+        val disabled = disabledNumbersCache
+        return fragments
+            .filterNot { it.number in disabled }
             .mapNotNull { it.content.replace(LEADING_COMMENT, "").trim().takeIf { text -> text.isNotEmpty() } }
             .joinToString("\n\n")
+    }
+
+    /**
+     * 被关闭的片段编号缓存。
+     *
+     * [renderStatic] 在组装系统提示词的同步链路上被调用，那里不能 suspend，
+     * 所以启动时预拉一次到内存，开关切换后由设置页主动刷新。
+     */
+    @Volatile
+    private var disabledNumbersCache: Set<Int> = emptySet()
+
+    /** 从 DataStore 刷新开关缓存；App 启动与开关切换后调用。 */
+    suspend fun refreshDisabledCache() {
+        disabledNumbersCache = runCatching { toggleRepository.disabledNumbers() }
+            .getOrDefault(emptySet())
+    }
 
     /** 是否存在「完全禁用内置提示词」标记（全局层）。 */
     fun isBuiltinDisabled(): Boolean = PromptFragmentResolver.isBuiltinDisabled(globalDir)

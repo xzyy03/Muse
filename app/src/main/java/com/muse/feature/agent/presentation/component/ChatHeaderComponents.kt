@@ -32,6 +32,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import compose.icons.feathericons.MoreHorizontal
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -246,6 +247,7 @@ private fun OverlayMenuButton(
     onNavigateToGit: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    val density = LocalDensity.current
     Box {
         IconButton(onClick = { expanded = true }, modifier = Modifier.size(36.dp)) {
             Icon(
@@ -255,37 +257,94 @@ private fun OverlayMenuButton(
                 modifier = Modifier.size(20.dp)
             )
         }
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false },
-            containerColor = MaterialTheme.colorScheme.surface
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.chat_new_session)) },
-                leadingIcon = {
-                    Icon(FeatherIcons.Plus, contentDescription = null, modifier = Modifier.size(18.dp))
-                },
-                onClick = { expanded = false; onNewChat() }
+        // 自绘弹出菜单：不用 DropdownMenu，因为它强制带 MenuDefaults 的柔和阴影，
+        // 这里需要完全无阴影的平面卡片。
+        if (expanded) {
+            Popup(
+                alignment = Alignment.TopEnd,
+                offset = IntOffset(with(density) { (-8).dp.roundToPx() }, with(density) { 42.dp.roundToPx() }),
+                onDismissRequest = { expanded = false },
+                properties = PopupProperties(focusable = true)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 0.dp,
+                    tonalElevation = 0.dp
+                ) {
+                    Column(modifier = Modifier.width(228.dp).padding(vertical = 6.dp)) {
+                        HeaderMenuRow(
+                            icon = FeatherIcons.Plus,
+                            label = stringResource(R.string.chat_new_session),
+                            active = false,
+                            onClick = { expanded = false; onNewChat() }
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 52.dp, end = 14.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                        HeaderMenuRow(
+                            icon = FeatherIcons.GitBranch,
+                            label = stringResource(R.string.chat_open_git),
+                            active = gitActive,
+                            onClick = { expanded = false; onNavigateToGit() }
+                        )
+                        HorizontalDivider(
+                            modifier = Modifier.padding(start = 52.dp, end = 14.dp),
+                            thickness = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                        )
+                        HeaderMenuRow(
+                            icon = FeatherIcons.Terminal,
+                            label = stringResource(R.string.chat_open_terminal),
+                            active = terminalActive,
+                            onClick = { expanded = false; onNavigateToTerminal() }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 菜单项：图标 + 文本，开启中时右侧蓝点。 */
+@Composable
+private fun HeaderMenuRow(
+    icon: ImageVector,
+    label: String,
+    active: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
             )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.chat_open_git)) },
-                leadingIcon = {
-                    Icon(FeatherIcons.GitBranch, contentDescription = null, modifier = Modifier.size(18.dp))
-                },
-                trailingIcon = if (gitActive) {
-                    { Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape)) }
-                } else null,
-                onClick = { expanded = false; onNavigateToGit() }
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.chat_open_terminal)) },
-                leadingIcon = {
-                    Icon(FeatherIcons.Terminal, contentDescription = null, modifier = Modifier.size(18.dp))
-                },
-                trailingIcon = if (terminalActive) {
-                    { Box(Modifier.size(6.dp).background(MaterialTheme.colorScheme.primary, CircleShape)) }
-                } else null,
-                onClick = { expanded = false; onNavigateToTerminal() }
+            .padding(horizontal = 18.dp, vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(19.dp)
+        )
+        Spacer(Modifier.width(15.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
+        )
+        if (active) {
+            Box(
+                Modifier
+                    .size(7.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape)
             )
         }
     }

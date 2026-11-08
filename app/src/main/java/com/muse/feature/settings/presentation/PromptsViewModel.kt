@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.muse.feature.agent.domain.prompt.PromptFragment
 import com.muse.feature.agent.domain.prompt.PromptFragmentCatalog
 import com.muse.feature.agent.domain.prompt.PromptFragmentSource
+import com.muse.feature.settings.data.repository.PromptFragmentToggleRepository
 import com.muse.feature.workspace.data.repository.WorkspaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +23,8 @@ data class PromptsUiState(
     val builtinDisabled: Boolean = false,
     /** 没有选中工作区时项目层不可写，编辑/新建回落到全局层。 */
     val hasWorkspace: Boolean = false,
+    /** 被关闭的片段编号：不参与系统提示词注入。 */
+    val disabledNumbers: Set<Int> = emptySet(),
     val loading: Boolean = true
 )
 
@@ -33,7 +36,8 @@ data class PromptsUiState(
 @HiltViewModel
 class PromptsViewModel @Inject constructor(
     private val catalog: PromptFragmentCatalog,
-    private val workspaceRepository: WorkspaceRepository
+    private val workspaceRepository: WorkspaceRepository,
+    private val toggleRepository: PromptFragmentToggleRepository
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(PromptsUiState())
@@ -51,6 +55,7 @@ class PromptsViewModel @Inject constructor(
                     fragments = catalog.list(projectRoot),
                     builtinDisabled = catalog.isBuiltinDisabled(),
                     hasWorkspace = projectRoot.isNotBlank(),
+                    disabledNumbers = toggleRepository.disabledNumbers(),
                     loading = false
                 )
             }
@@ -130,6 +135,17 @@ class PromptsViewModel @Inject constructor(
     fun setBuiltinDisabled(disabled: Boolean) {
         viewModelScope.launch {
             withContext(Dispatchers.IO) { catalog.setBuiltinDisabled(disabled) }
+            refresh()
+        }
+    }
+
+    /** 开关某片段：落盘后刷新系统提示词的开关缓存，下一次组装即生效。 */
+    fun setFragmentEnabled(number: Int, enabled: Boolean) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                toggleRepository.setEnabled(number, enabled)
+                catalog.refreshDisabledCache()
+            }
             refresh()
         }
     }

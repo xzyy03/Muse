@@ -168,6 +168,10 @@ class AIEditorApp : Application(), Configuration.Provider {
     @Inject
     lateinit var permissionRulesRepository: com.muse.feature.agent.domain.permission.PermissionRulesRepository
 
+    /** 提示词片段开关：启动即把「被关闭的片段编号」读入内存，供同步渲染系统提示词使用。 */
+    @Inject
+    lateinit var promptFragmentCatalog: com.muse.feature.agent.domain.prompt.PromptFragmentCatalog
+
     /** 技能配置仓库：启动即监听技能目录与 skills.json 外部变更，改动数秒内刷新技能列表。 */
     @Inject
     lateinit var skillConfigRepository: com.muse.feature.agent.domain.skill.SkillConfigRepository
@@ -306,6 +310,10 @@ class AIEditorApp : Application(), Configuration.Provider {
         // 启动即加载持久化等级，并随设置页改动实时生效（唯一同步点）。
         appScope.launch {
             logSettings.levelFlow.collectLatest { FileLogger.setMinLevel(it) }
+        }
+        // 启动即把提示词片段开关读入内存：系统提示词组装是同步链路，不能在那里读 DataStore。
+        appScope.launch {
+            promptFragmentCatalog.refreshDisabledCache()
         }
         // 启动即同步从 DataStore 读首帧执行模式缓存到 ExecutionModeHolder，供 DI @Provides 同步读取。
         // 异步读首帧模式写入 ExecutionModeHolder。委托层（DelegatingCommandEngine/DelegatingFileAccess）

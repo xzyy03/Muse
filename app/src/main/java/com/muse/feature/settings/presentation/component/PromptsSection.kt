@@ -13,7 +13,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -86,7 +90,11 @@ internal fun PromptsSection(
     onDeleteFragment: (Int) -> Unit,
     onReorder: (List<PromptFragment>) -> Unit,
     onToggleBuiltinDisabled: (Boolean) -> Unit,
-    onBatchDeleteFragments: (List<Int>) -> Unit
+    onBatchDeleteFragments: (List<Int>) -> Unit,
+    /** 被关闭的片段编号。 */
+    disabledNumbers: Set<Int> = emptySet(),
+    /** 切换某片段的启用状态。 */
+    onToggleFragment: (Int, Boolean) -> Unit = { _, _ -> }
 ) {
     var showBatchDeleteConfirm by remember { mutableStateOf(false) }
     // 内置来源的片段删不了，也就不参与多选：勾选框置灰、全选也不会选中它们。
@@ -152,6 +160,8 @@ internal fun PromptsSection(
                 onOpenFragment = onOpenFragment,
                 onDeleteFragment = onDeleteFragment,
                 onReorder = onReorder,
+                disabledNumbers = disabledNumbers,
+                onToggleFragment = onToggleFragment,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -183,6 +193,8 @@ private fun PromptList(
     onOpenFragment: (PromptFragment) -> Unit,
     onDeleteFragment: (Int) -> Unit,
     onReorder: (List<PromptFragment>) -> Unit,
+    disabledNumbers: Set<Int> = emptySet(),
+    onToggleFragment: (Int, Boolean) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     var localFragments by remember { mutableStateOf(fragments) }
@@ -241,6 +253,8 @@ private fun PromptList(
                         selectionMode = selection.isActive,
                         selected = selection.isSelected(fragment.number.toString()),
                         onToggleSelect = { selection.toggle(fragment.number.toString()) },
+                        enabled = fragment.number !in disabledNumbers,
+                        onToggleEnabled = { onToggleFragment(fragment.number, it) },
                         dragModifier = if (selection.isActive) {
                             Modifier
                         } else {
@@ -277,7 +291,9 @@ private fun PromptRow(
     dragModifier: Modifier,
     selectionMode: Boolean = false,
     selected: Boolean = false,
-    onToggleSelect: () -> Unit = {}
+    onToggleSelect: () -> Unit = {},
+    enabled: Boolean = true,
+    onToggleEnabled: (Boolean) -> Unit = {}
 ) {
     val sortDescription = stringResource(R.string.prompts_sort_long_press)
     val row: @Composable () -> Unit = {
@@ -330,6 +346,15 @@ private fun PromptRow(
 
             Spacer(modifier = Modifier.width(Spacing.sm))
             SourceBadge(fragment.source)
+            // 独立开关：关闭后该片段不再注入系统提示词。多选模式下隐藏，避免误触。
+            if (!selectionMode) {
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                MiniSwitch(
+                    checked = enabled,
+                    onCheckedChange = onToggleEnabled,
+                    contentDescription = "启用片段"
+                )
+            }
             Spacer(modifier = Modifier.width(Spacing.xs))
             Icon(
                 imageVector = FeatherIcons.ChevronRight,
@@ -375,4 +400,56 @@ private fun SourceBadge(source: PromptFragmentSource) {
             .background(color.copy(alpha = 0.12f), RoundedCornerShape(6.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp)
     )
+}
+
+/**
+ * 迷你开关：轨道 34×18dp，拇指 14dp。
+ *
+ * Material3 的 Switch 最小尺寸约 52×32dp，放进列表行会抢走正文宽度，
+ * 所以自绘一份。触控区域仍由外层 40dp 高度包裹，手指不必精准命中。
+ */
+@Composable
+private fun MiniSwitch(
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    contentDescription: String
+) {
+    val trackColor by androidx.compose.animation.animateColorAsState(
+        targetValue = if (checked) MaterialTheme.colorScheme.primary
+        else MaterialTheme.colorScheme.surfaceVariant,
+        label = "trackColor"
+    )
+    val knobColor by androidx.compose.animation.animateColorAsState(
+        targetValue = if (checked) MaterialTheme.colorScheme.onPrimary
+        else MaterialTheme.colorScheme.outline,
+        label = "knobColor"
+    )
+    val knobOffset by androidx.compose.animation.core.animateDpAsState(
+        targetValue = if (checked) 18.dp else 2.dp,
+        label = "knobOffset"
+    )
+
+    Box(
+        modifier = Modifier
+            .size(width = 40.dp, height = 28.dp)
+            .semantics { this.contentDescription = contentDescription }
+            .clickable(
+                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
+                indication = null
+            ) { onCheckedChange(!checked) },
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 34.dp, height = 18.dp)
+                .background(trackColor, RoundedCornerShape(9.dp))
+        ) {
+            Box(
+                modifier = Modifier
+                    .offset(x = knobOffset, y = 2.dp)
+                    .size(14.dp)
+                    .background(knobColor, CircleShape)
+            )
+        }
+    }
 }

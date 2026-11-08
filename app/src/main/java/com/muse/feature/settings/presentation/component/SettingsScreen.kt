@@ -1047,7 +1047,9 @@ fun SettingsScreen(
                         onDeleteFragment = promptsViewModel::deleteFragment,
                         onReorder = promptsViewModel::reorderFragments,
                         onToggleBuiltinDisabled = promptsViewModel::setBuiltinDisabled,
-                        onBatchDeleteFragments = promptsViewModel::deleteFragments
+                        onBatchDeleteFragments = promptsViewModel::deleteFragments,
+                        disabledNumbers = promptsState.disabledNumbers,
+                        onToggleFragment = promptsViewModel::setFragmentEnabled
                     )
                     if (showResetPrompts) {
                         AlertDialog(
