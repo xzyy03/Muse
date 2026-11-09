@@ -57,6 +57,7 @@ class PluginMarketRepository @Inject constructor(
         )
 
         const val MAX_ZIP_BYTES = 20L * 1024 * 1024
+
     }
 
     private val pluginsRoot: File get() = File(containerInstaller.museDir, "plugins")

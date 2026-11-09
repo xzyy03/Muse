@@ -10,10 +10,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,16 +28,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.muse.core.theme.Spacing
-import com.muse.feature.agent.domain.plugin.Plugin
-import androidx.compose.material3.OutlinedTextField
-import compose.icons.feathericons.Download
 import com.muse.feature.agent.domain.plugin.MarketPlugin
+import com.muse.feature.agent.domain.plugin.Plugin
 import com.muse.feature.settings.presentation.PluginsUiState
 import compose.icons.FeatherIcons
+import compose.icons.feathericons.Download
 import compose.icons.feathericons.Package
 
 /**
- * 插件页：列出 `~/.muse/plugins/` 下的插件，可逐个启停、查看声明了哪些工具。
+ * 插件页：市场入口 + 已安装插件列表。
  *
  * 插件是声明式的：宿主只读 `plugin.json` 并把工具注册进工具箱，
  * 工具执行时在容器里跑插件自己给的命令，不加载任何插件侧框架代码。
@@ -90,7 +89,7 @@ internal fun PluginsSection(
             SettingsGroup {
                 SettingsRow(
                     title = "暂无插件",
-                    subtitle = "在插件目录下新建子目录并放入 plugin.json 即可",
+                    subtitle = "从市场安装，或在插件目录下放 plugin.json",
                     enabled = false
                 )
             }
@@ -123,17 +122,6 @@ internal fun PluginsSection(
         }
     }
 
-    if (showMarket) {
-        MarketDialog(
-            state = state,
-            installedIds = remember(state.plugins) { state.plugins.map { it.id }.toSet() },
-            onDismiss = { showMarket = false },
-            onSearch = onSearchMarket,
-            onInstall = onInstallMarket,
-            onReload = onLoadMarket
-        )
-    }
-
     detail?.let { plugin ->
         PluginDetailDialog(
             plugin = plugin,
@@ -142,6 +130,17 @@ internal fun PluginsSection(
                 onDelete(plugin.id)
                 detail = null
             }
+        )
+    }
+
+    if (showMarket) {
+        MarketDialog(
+            state = state,
+            installedIds = remember(state.plugins) { state.plugins.map { it.id }.toSet() },
+            onDismiss = { showMarket = false },
+            onSearch = onSearchMarket,
+            onInstall = onInstallMarket,
+            onReload = onLoadMarket
         )
     }
 }
@@ -257,6 +256,7 @@ private fun PluginDetailDialog(
             }
         )
     }
+}
 
 /** 市场面板：搜索、浏览、一键安装。 */
 @Composable
