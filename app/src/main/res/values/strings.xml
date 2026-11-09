@@ -127,6 +127,7 @@
     <string name="settings_image_gen_model">生图模型</string>
     <string name="settings_mcp">MCP 服务器</string>
     <string name="settings_skills">技能</string>
+    <string name="settings_plugins">插件</string>
     <string name="settings_memory">记忆</string>
     <string name="memory_global_title">全局记忆</string>
     <string name="memory_project_title">项目记忆</string>
