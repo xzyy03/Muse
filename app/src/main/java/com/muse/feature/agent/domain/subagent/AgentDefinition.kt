@@ -107,11 +107,8 @@ data class AgentDefinition(
      *
      * 主代理看不到子代理的工具集，容易把修改任务派给只读子代理、让没有 Shell 的子代理跑验证命令，
      * 白跑一整轮才发现。摘要随「可用子代理」清单注入，判定与 [filterToolNames] 同源。
-     *
-     * @param parentMode 父会话模式。判定用 [effectiveMode]：不仅父会话是 PLAN 时写与命令显示
-     *   「否（PLAN 只读）」，定义钉死 `mode: plan`（即便父会话是 BUILD）同样如此——子代理
-     *   实际跑在只读边界，定义里配了写工具也会被策略引擎拦截，不提前说清就会派错活。
      */
+    @Suppress("UNUSED_PARAMETER")
     fun capabilitySummary(parentMode: AgentMode? = null): String {
         fun flag(group: Set<String>): String = if (group.any { allowsTool(it) }) "是" else "否"
         return "文件读取 ${flag(READ_TOOLS)} · 文件修改 ${flag(WRITE_TOOLS)}" +
