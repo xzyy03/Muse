@@ -1861,12 +1861,6 @@ internal fun SettingsMenu(
         SettingsGroupHeader(text = stringResource(R.string.settings_category_permissions))
         SettingsGroup {
             SettingsRow(
-                icon = FeatherIcons.Lock,
-                title = stringResource(SettingsSection.Permissions.titleRes),
-                onClick = { onOpen(SettingsSection.Permissions) }
-            )
-            SettingsDivider()
-            SettingsRow(
                 icon = FeatherIcons.Shield,
                 title = stringResource(SettingsSection.AppPermissions.titleRes),
                 onClick = { onOpen(SettingsSection.AppPermissions) }

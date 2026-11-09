@@ -2507,27 +2507,6 @@ class AIAgentViewModel @Inject constructor(
         _currentSessionId.value = id
     }
 
-    fun setSessionMode(mode: AgentMode) {
-        val sid = _currentSessionId.value ?: return
-        viewModelScope.launch {
-            sessionUseCase.updateMode(sid, mode.name)
-            // 工作期间切换：把新模式作为系统事件投递给运行中的 agent，本轮即时生效（见 StatefulAgentWorkflow）。
-            // 空闲时无需投递——下一轮开轮会按新模式注入一次提醒。
-            if (sessionJobs[sid]?.isActive == true) {
-                agentNotificationCenter.enqueue(
-                    sid,
-                    PendingNotification(
-                        kind = AgentNotificationKind.MODE_CHANGE,
-                        sourceId = "user",
-                        title = mode.name,
-                        outcome = NotificationOutcome.COMPLETED,
-                        newMode = mode
-                    )
-                )
-            }
-        }
-    }
-
     fun setSessionReasoningEffort(effort: ReasoningEffort) {
         val sid = _currentSessionId.value ?: return
         viewModelScope.launch {

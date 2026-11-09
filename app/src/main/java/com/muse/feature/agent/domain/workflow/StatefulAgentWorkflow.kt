@@ -1286,17 +1286,7 @@ class StatefulAgentWorkflow @Inject constructor(
      * 模式提示词不进 system——一旦切换就要重建 system、打断前缀缓存；
      * 改为消息级提醒：每次用户请求拼在最新用户消息末尾，位置在消息流尾部，前缀保持稳定。
      */
-    private fun buildModeReminder(mode: AgentMode): String? = when (mode) {
-        AgentMode.PLAN -> promptProvider.resolvePrompt(MODE_REMINDER_PLAN_FILE)
-            .replace(LEADING_COMMENT, "")
-            .trim()
-            .let { "【模式提醒】$it" }
-        AgentMode.AUTO -> promptProvider.resolvePrompt(MODE_REMINDER_AUTO_FILE)
-            .replace(LEADING_COMMENT, "")
-            .trim()
-            .let { "【模式提醒】$it" }
-        AgentMode.BUILD -> null
-    }
+    private fun buildModeReminder(mode: AgentMode): String? = null
 
     /**
      * 取本次应注入的模式提醒：仅当模式与上次注入时不同（含首次）才返回文本并记录，否则为 null。
@@ -1308,23 +1298,11 @@ class StatefulAgentWorkflow @Inject constructor(
         return buildModeReminder(mode)
     }
 
-    /** 工具调用成功后写入 planMode 结果 data 的模式状态通知（当轮即可见）。 */
-    private fun buildModeSwitchNotice(mode: AgentMode): String = when (mode) {
-        AgentMode.PLAN -> promptProvider.resolvePrompt(MODE_REMINDER_PLAN_FILE)
-            .replace(LEADING_COMMENT, "")
-            .trim()
-        AgentMode.BUILD -> "【模式切换】" + appContext.getString(R.string.plan_mode_approved_build)
-        AgentMode.AUTO -> "【模式切换】" + appContext.getString(R.string.plan_mode_approved_auto)
-    }
+    /** 模式切换通知：应用已不提供模式切换，保留空实现以兼容调用点。 */
+    private fun buildModeSwitchNotice(mode: AgentMode): String = ""
 
-    /** 界面手动切换时写入模式通知 detail 的提示，区分计划审批与用户直接切换。 */
-    private fun buildExternalModeSwitchNotice(mode: AgentMode): String = when (mode) {
-        AgentMode.PLAN -> promptProvider.resolvePrompt(MODE_REMINDER_PLAN_FILE)
-            .replace(LEADING_COMMENT, "")
-            .trim()
-        AgentMode.BUILD -> "【模式切换】" + appContext.getString(R.string.plan_mode_external_build)
-        AgentMode.AUTO -> "【模式切换】" + appContext.getString(R.string.plan_mode_external_auto)
-    }
+    /** 界面手动切换时写入模式通知 detail 的提示；应用已无模式切换。 */
+    private fun buildExternalModeSwitchNotice(mode: AgentMode): String = ""
 
     /**
      * 从 sendFile 工具结果的 `files` 数组提取文件卡片元数据（含宿主本地路径，供 UI 打开文件用）。
@@ -1366,6 +1344,12 @@ class StatefulAgentWorkflow @Inject constructor(
         return ToolResult.Success(JsonObject(strippedData))
     }
 
+    /**
+     * 工具执行前的授权检查：直接放行。
+     *
+     * 应用不弹工具授权确认，所有已注册工具一律执行。保留方法签名以兼容调用点。
+     */
+    @Suppress("UNUSED_PARAMETER")
     private suspend fun requestPermissionIfNeeded(
         tool: AgentTool?,
         callId: String,
@@ -1373,55 +1357,7 @@ class StatefulAgentWorkflow @Inject constructor(
         argsPreview: String,
         mode: AgentMode,
         sessionId: String?
-    ): PermissionCheckResult {
-        if (tool == null) {
-            return PermissionCheckResult(true)
-        }
-
-        // planMode 退出 PLAN 时，后续会有计划审查面板兜底用户决策，
-        // 此处权限弹窗冗余，直接放行；进入 PLAN 的方向无后续审查面板，仍走权限弹窗。
-        if (tool.name == "planMode" && mode == AgentMode.PLAN) {
-            val action = (arguments["action"] as? JsonPrimitive)?.contentOrNull?.trim()?.lowercase()
-            if (action == "exit") {
-                return PermissionCheckResult(true)
-            }
-        }
-
-        val eval = policyEngine.evaluate(tool, tool.name, arguments, mode)
-        if (eval.verdict == ToolPermissionPolicyEngine.Verdict.DENY) {
-            val reason = eval.denyReason ?: "该工具被项目安全规则策略禁止执行"
-            val code = if (mode == AgentMode.PLAN) "PLAN_MODE_REJECTED" else "SYSTEM_DENIED"
-            return PermissionCheckResult(false, reason, code)
-        }
-
-        if (tool.permissionPolicy == ToolPermissionPolicy.AUTO_APPROVE) {
-            return PermissionCheckResult(true)
-        }
-
-        return when (eval.verdict) {
-            ToolPermissionPolicyEngine.Verdict.ALLOW -> PermissionCheckResult(true)
-            ToolPermissionPolicyEngine.Verdict.DENY -> PermissionCheckResult(false)
-            ToolPermissionPolicyEngine.Verdict.ASK -> {
-                val base = tool.buildPermissionRequest(callId, arguments, argsPreview)
-                val request = base.copy(
-                    title = eval.askTitle ?: base.title,
-                    rememberablePatterns = eval.rememberablePatterns,
-                    rememberDisabledReason = eval.rememberDisabledReason,
-                    sessionId = sessionId.orEmpty()
-                )
-                when (permissionManager.awaitApproval(request)) {
-                    PermissionChoice.REJECT -> PermissionCheckResult(false, "用户拒绝执行该工具", "USER_REJECTED")
-                    PermissionChoice.ONCE -> PermissionCheckResult(true)
-                    PermissionChoice.ALWAYS -> {
-                        if (eval.rememberablePatterns.isNotEmpty()) {
-                            policyEngine.remember(tool.name, eval.rememberablePatterns, PermissionScope.PROJECT)
-                        }
-                        PermissionCheckResult(true)
-                    }
-                }
-            }
-        }
-    }
+    ): PermissionCheckResult = PermissionCheckResult(true)
 }
 
 internal fun appendPlanModeNotice(rawToolResult: String, notice: String): String {

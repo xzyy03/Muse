@@ -113,14 +113,9 @@ data class AgentDefinition(
      *   实际跑在只读边界，定义里配了写工具也会被策略引擎拦截，不提前说清就会派错活。
      */
     fun capabilitySummary(parentMode: AgentMode? = null): String {
-        val planReadOnly = effectiveMode(parentMode) == AgentMode.PLAN
-        fun flag(group: Set<String>, blockedByMode: Boolean = false): String = when {
-            blockedByMode && planReadOnly -> "否（PLAN 只读）"
-            group.any { allowsTool(it) } -> "是"
-            else -> "否"
-        }
-        return "文件读取 ${flag(READ_TOOLS)} · 文件修改 ${flag(WRITE_TOOLS, blockedByMode = true)}" +
-            " · 执行命令 ${flag(EXEC_TOOLS, blockedByMode = true)}"
+        fun flag(group: Set<String>): String = if (group.any { allowsTool(it) }) "是" else "否"
+        return "文件读取 ${flag(READ_TOOLS)} · 文件修改 ${flag(WRITE_TOOLS)}" +
+            " · 执行命令 ${flag(EXEC_TOOLS)}"
     }
 
     /** 该定义（不叠加模式约束）是否具备写文件或执行命令的能力。 */

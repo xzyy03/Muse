@@ -90,7 +90,6 @@ import com.muse.feature.agent.domain.session.SessionUseCase
 import com.muse.feature.agent.domain.tool.mcp.ManageMcpTool
 import com.muse.feature.agent.domain.tool.memory.MemoryTool
 import com.muse.feature.agent.domain.tool.mode.PlanApprovalManager
-import com.muse.feature.agent.domain.tool.mode.PlanModeTool
 import com.muse.feature.agent.domain.tool.goal.GoalStatusTool
 import com.muse.feature.agent.domain.tool.search.WebFetchTool
 import com.muse.feature.agent.domain.tool.search.WebSearchTool
@@ -370,7 +369,6 @@ object AgentModule {
         manageMcpTool: ManageMcpTool,
         webSearchTool: WebSearchTool,
         webFetchTool: WebFetchTool,
-        planModeTool: PlanModeTool,
         goalStatusTool: GoalStatusTool,
         todoTool: TodoTool,
         memoryTool: MemoryTool,
@@ -395,7 +393,6 @@ object AgentModule {
             register("manageMcp", manageMcpTool)
             register("websearch", webSearchTool)
             register("webfetch", webFetchTool)
-            register("planMode", planModeTool)
             register("goalStatus", goalStatusTool)
             register("todo", todoTool)
             register("memory", memoryTool)

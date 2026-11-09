@@ -40,12 +40,9 @@ App 里的改动与手工放文件完全等价，两种方式可以混用。
 ```
 ~/.muse/
 ├── prompts/          默认提示词（App 启动时全量释放，升级自动覆盖）
-│   ├── 00-identity.md
-│   ├── 10-communication.md
-│   ├── ...           顶层是「静态基线」片段，按两位数字前缀排序（内置最后一个为 99-runtime-context.md）
+│   ├── 00-identity.md    身份与职责
+│   ├── 10-rules.md       输出、编码、安全、工具、项目规则与运行期上下文
 │   └── agent/        按需注入的片段（不进静态基线，用到时才读取）
-│       ├── plan-mode.md           PLAN 模式提醒
-│       ├── auto-mode.md           AUTO 模式提醒
 │       ├── subagent-base.md       子代理基础运行规范
 │       ├── subagent-context.md    子代理运行期上下文（身份/工作区/时间）
 │       ├── compact-summary.md     长对话上下文压缩
@@ -135,11 +132,11 @@ App 里的改动与手工放文件完全等价，两种方式可以混用。
 :::
 
 ::: tip 变量在任意片段处就地展开
-系统提示词里的技能、子代理、记忆、项目规则、工作区与当前时间，默认由内置片段 `99-runtime-context.md` 用这些变量承载；你也可以在自己的片段里写变量，同样会在该处替换成真实内容。想改变这些内容的位置或顺序，编辑或覆盖 `99-runtime-context.md` 即可。
+系统提示词里的技能、子代理、记忆、项目规则、工作区与当前时间，默认由内置片段 `10-rules.md` 用这些变量承载；你也可以在自己的片段里写变量，同样会在该处替换成真实内容。想改变这些内容的位置或顺序，编辑或覆盖 `10-rules.md` 即可。
 变量只替换为**纯数据**（列表行、文件正文、路径、日期），像「可用技能：」这样的标题与引导语都写在片段文件里，随片段一起编辑。
 :::
 
-`prompts.custom/` 里没有 `99-runtime-context.md` 的覆盖时，运行期上下文照常由内置版本注入；若你覆盖了它却没写变量，对应内容就不会出现。
+`prompts.custom/` 里没有 `10-rules.md` 的覆盖时，运行期上下文照常由内置版本注入；若你覆盖了它却没写变量，对应内容就不会出现。
 
 其它占位符（如压缩提示词用的 <span v-pre>`{{INSTRUCTION}}`</span>）不受影响。
 
@@ -157,17 +154,7 @@ App 里的改动与手工放文件完全等价，两种方式可以混用。
 | 文件名 | 内容 |
 | --- | --- |
 | `00-identity.md` | AI 身份与角色定义 |
-| `10-communication.md` | 沟通与回复风格 |
-| `15-project-rules.md` | 项目规则加载约定（AGENTS.md / CLAUDE.md），详见 [记忆与项目规则](/guide/memory) |
-| `20-coding-discipline.md` | 编码纪律 |
-| `30-comments.md` | 代码注释规范 |
-| `40-approach.md` | 工作方式与流程 |
-| `50-safety.md` | 安全与可信边界 |
-| `60-tools-and-paths.md` | 工具说明与路径约定 |
-| `70-skills-and-mcp.md` | 技能与 MCP 说明 |
-| `99-runtime-context.md` | 运行期上下文：技能、子代理、记忆、项目规则、工作区与当前时间（用变量承载） |
-| `agent/plan-mode.md` | PLAN 模式提醒（按需注入） |
-| `agent/auto-mode.md` | AUTO 模式提醒（按需注入） |
+| `10-rules.md` | 输出风格、编码纪律、注释、工作方式、安全边界、工具与路径、项目规则，以及运行期上下文（技能、子代理、记忆、项目规则、工作区与当前时间，用变量承载） |
 | `agent/subagent-base.md` | 子代理基础运行规范（按需注入） |
 | `agent/subagent-context.md` | 子代理运行期上下文：身份、工作区与时间（按需注入） |
 | `agent/compact-summary.md` | 长对话上下文压缩的提示词 |

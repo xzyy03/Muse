@@ -5,11 +5,7 @@ import { defineConfig } from 'vitepress'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
-// GitHub Pages 项目站点部署在 /<repo>/ 子路径下，构建时用 DOCS_BASE 注入；本地/Vercel 默认根路径。
-const base = process.env.DOCS_BASE || '/'
-
 export default defineConfig({
-  base,
   srcDir: './docs',
   locales: {
     root: {
@@ -120,7 +116,6 @@ export default defineConfig({
           text: '核心工作流',
           items: [
             { text: '聊天界面导览', link: '/guide/chat' },
-            { text: '三种模式（Build / Plan / Auto）', link: '/guide/modes' },
             { text: '会话目标（Goal）', link: '/guide/goal' },
             { text: '检查点与撤销', link: '/guide/checkpoint' },
             { text: '终端', link: '/guide/terminal' },
@@ -163,7 +158,6 @@ export default defineConfig({
           items: [
             { text: '偏好设置', link: '/guide/general' },
             { text: '外观与语言', link: '/guide/appearance' },
-            { text: '工具授权', link: '/guide/permissions' },
             { text: '软件权限', link: '/guide/app-permissions' },
             { text: '后台运行', link: '/guide/background-run' },
             { text: '日志与故障排查', link: '/guide/logs' },

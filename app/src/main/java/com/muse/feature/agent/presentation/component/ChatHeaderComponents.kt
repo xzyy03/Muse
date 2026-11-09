@@ -60,7 +60,6 @@ import androidx.compose.ui.window.PopupProperties
 import com.muse.R
 import com.muse.core.theme.Radius
 import com.muse.core.theme.Spacing
-import com.muse.feature.agent.domain.model.AgentMode
 import com.muse.feature.onboarding.domain.OnboardingStep
 import com.muse.feature.onboarding.presentation.onboardingTarget
 import com.muse.feature.settings.presentation.component.ModelLogoIcon
@@ -84,8 +83,6 @@ internal fun ChatHeader(
     onNavigateToTerminal: () -> Unit,
     onNavigateToGit: () -> Unit,
     onNavigateToBrowser: () -> Unit = {},
-    currentMode: AgentMode = AgentMode.AUTO,
-    onToggleMode: (AgentMode) -> Unit = {},
     connectionState: com.muse.feature.agent.domain.container.ConnectionState? = null,
     showMenuButton: Boolean = true,
     terminalActive: Boolean = false,

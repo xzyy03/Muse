@@ -74,6 +74,15 @@ class ContainerInstaller @Inject constructor(
         private fun extractAssetsRecursive(context: Context, assetDir: String, destDir: File) {
             val entries = context.assets.list(assetDir) ?: return
             destDir.mkdirs()
+            // 先清掉 assets 里已不存在的旧文件：否则升级后删掉的片段与文档会一直留在
+            // ~/.muse/prompts/、~/.muse/docs/ 里，AI 读文件时仍能查到已废弃的内容。
+            val assetNames = entries.toSet()
+            destDir.listFiles()?.forEach { existing ->
+                if (existing.name !in assetNames) {
+                    runCatching { existing.deleteRecursively() }
+                        .onFailure { FileLogger.w(TAG, "清理旧文件失败 ${existing.path}: ${it.message}", it) }
+                }
+            }
             for (entry in entries) {
                 val assetPath = "$assetDir/$entry"
                 val destFile = File(destDir, entry)

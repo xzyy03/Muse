@@ -125,137 +125,38 @@ class ToolPermissionPolicyEngine @Inject constructor(
         val askTitle: String? = null
     )
 
-    suspend fun evaluate(tool: AgentTool?, toolName: String, args: Map<String, JsonElement>, mode: com.muse.feature.agent.domain.model.AgentMode): EvalResult {
-        val capabilities = tool?.effectiveCapabilities(args).orEmpty()
-        if (mode == com.muse.feature.agent.domain.model.AgentMode.PLAN && isDangerousTool(toolName, args, capabilities)) {
-            return EvalResult(Verdict.DENY, emptyList(), denyReason = appContext.getString(R.string.tool_plan_mode_denied))
-        }
-
-        if (mode == com.muse.feature.agent.domain.model.AgentMode.AUTO) {
-            // AUTO 模式放行所有权限；灾难性 rm 防护（根目录/系统目录删除）默认保留，
-            // 可在「工具授权」设置中关闭（禁用安全拦截）。遭遇拦截时仍可凭 elevate 参数提权重试。
-            val safetyDisabled = toolSafetySettings.isSafetyInterceptionDisabled()
-            if (!safetyDisabled && isShellTool(toolName, args)) {
-                val command = ((args["command"] ?: args["input"]) as? JsonPrimitive)?.content
-                if (command != null) {
-                    val analysis = ShellCommandParser.analyze(command)
-                    checkCatastrophicRm(analysis.segments)?.let { return elevationOrDeny(it, args) }
-                    // 命令替换/子 shell/绝对路径重定向等无法静态判定的构造，删除目标不可知；
-                    // 若同时疑似破坏性，宁可拦下（可提权），避免绕过安全防护。
-                    if (!analysis.analyzable && looksDestructive(command)) {
-                        return elevationOrDeny(unanalyzableReason(analysis), args)
-                    }
-                }
-            }
-            // Shizuku 直接操作宿主系统，AUTO 下也不自动放行，仍需逐次确认（除非已开启「禁用安全拦截」）。
-            if (toolName == SHIZUKU_TOOL && !safetyDisabled) {
-                return EvalResult(Verdict.ASK, emptyList(), rememberDisabledReason = appContext.getString(R.string.tool_shizuku_confirmation_reason))
-            }
-            return EvalResult(Verdict.ALLOW, emptyList())
-        }
-
-        if (capabilities == setOf(ToolCapability.READ_AGENT_CONFIG)) {
-            return EvalResult(Verdict.ALLOW, emptyList())
-        }
-
-        if (toolName == TASK_TOOL) {
-            val action = (args["action"] as? JsonPrimitive)?.content?.trim()?.lowercase() ?: "create"
-            // 只读与发消息动作（read/list/send）：不放行 DENY 规则，其余直接自动放行（不弹窗）。
-            if (action in TASK_AUTO_ACTIONS) {
-                val rules = rulesRepo.loadEffectiveForCurrentProject().filter { it.toolName == toolName }
-                if (rules.any { it.pattern == PermissionRule.WHOLE_TOOL && it.decision == PermissionDecision.DENY }) {
-                    return EvalResult(Verdict.DENY, emptyList(), denyReason = appContext.getString(R.string.tool_permission_rule_denied))
-                }
-                return EvalResult(Verdict.ALLOW, emptyList())
-            }
-            if (action == TASK_DELETE_ACTION) {
-                // 删除子会话及其全部消息不可逆：尊重显式 DENY，其余一律单次确认，不提供
-                // 「始终允许」——create/stop 落下的 ALWAYS 记忆不得连带放行删除。
-                val rules = rulesRepo.loadEffectiveForCurrentProject().filter { it.toolName == toolName }
-                if (rules.any { it.pattern == PermissionRule.WHOLE_TOOL && it.decision == PermissionDecision.DENY }) {
-                    return EvalResult(Verdict.DENY, emptyList(), denyReason = appContext.getString(R.string.tool_permission_rule_denied))
-                }
-                return EvalResult(
-                    Verdict.ASK,
-                    rememberablePatterns = emptyList(),
-                    rememberDisabledReason = "删除子代理会话及其消息不可逆，仅支持单次放行"
-                )
-            }
-        }
-
-        val rules = rulesRepo.loadEffectiveForCurrentProject().filter { it.toolName == toolName }
-        return if (isShellTool(toolName, args)) {
-            evaluateShell(rules, args, forceAsk = toolName == SHIZUKU_TOOL)
-        } else {
-            evaluateGeneric(rules, capabilities)
-        }
-    }
-
-    private fun isDangerousTool(toolName: String, args: Map<String, JsonElement>, capabilities: Set<ToolCapability>): Boolean {
-        val dangerousCapabilities = setOf(
-            ToolCapability.WRITE_WORKSPACE,
-            ToolCapability.EXECUTE_COMMANDS,
-            ToolCapability.NETWORK_WRITE,
-            ToolCapability.MODIFY_AGENT_CONFIG,
-            ToolCapability.MODIFY_CONTAINER_ENV,
-            ToolCapability.EXTERNAL_TOOL
-        )
-        if (capabilities.any { it in dangerousCapabilities }) return true
-
-        // 只读探索工具在 PLAN 模式下永远安全
-        val safePlanModeTools = setOf("list", "search")
-        if (toolName in safePlanModeTools) return false
-
-        val dangerousTools = setOf(
-            "writeFile",
-            "editFile",
-            "Bash"
-        )
-        if (toolName in dangerousTools) return true
-        if (toolName == TERMINAL_TOOL) {
-            val action = (args["action"] as? JsonPrimitive)?.content?.trim()?.lowercase()
-            return action != "read"
-        }
-        if (toolName == BROWSER_TOOL) {
-            val action = (args["action"] as? JsonPrimitive)?.content?.trim()
-            return action !in BROWSER_READ_ONLY_ACTIONS
-        }
-        return false
-    }
-
-    /** 是否按 shell 命令前缀匹配：[SHELL_TOOLS] 中的工具，或终端工具的 start/send 动作。 */
-    private fun isShellTool(toolName: String, args: Map<String, JsonElement>): Boolean {
-        if (toolName in SHELL_TOOLS) return true
-        if (toolName == TERMINAL_TOOL) {
-            val action = (args["action"] as? JsonPrimitive)?.content?.trim()?.lowercase()
-            return action == TERMINAL_SHELL_ACTION || action == "send"
-        }
-        return false
-    }
+    /**
+     * 工具授权判定：一律放行。
+     *
+     * 应用不设模式切换，也不弹工具授权确认；所有工具直接执行。
+     * 保留函数签名与 [EvalResult] 结构，是为了让调用方（workflow）无需改动。
+     */
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun evaluate(
+        tool: AgentTool?,
+        toolName: String,
+        args: Map<String, JsonElement>,
+        mode: com.muse.feature.agent.domain.model.AgentMode
+    ): EvalResult = EvalResult(Verdict.ALLOW, emptyList())
 
     /** 调用是否携带提权参数（`elevate: true`）。 */
     private fun isElevationRequested(args: Map<String, JsonElement>): Boolean =
         (args[ELEVATE_ARG] as? JsonPrimitive)?.content?.trim()?.lowercase() == "true"
 
-    /**
-     * 该命令是否疑似破坏性（仅在命令不可静态判定时使用）：含输出重定向、`-delete`
-     * 或常见破坏性程序名。宁可多问，不误放。
-     */
+    /** 该命令是否疑似破坏性（仅在命令不可静态判定时使用）。 */
     private fun looksDestructive(command: String): Boolean =
         command.contains('>') || command.contains("-delete") || DESTRUCTIVE_PROGRAM.containsMatchIn(command)
 
-    /**
-     * 不可静态判定时的拦截原因：附带具体触发构造。
-     * 只说「无法静态分析」时 AI 不知道是 `$(...)` 还是绝对路径重定向，只能整条反复重试。
-     */
+    /** 不可静态判定时的拦截原因：附带具体触发构造。 */
     private fun unanalyzableReason(analysis: ShellCommandParser.Analysis): String {
         val constructs = analysis.blockers.joinToString("、").ifEmpty { "未知构造" }
         return "$REASON_UNANALYZABLE_DESTRUCTIVE（触发构造：$constructs）"
     }
 
     /**
-     * 灾难性删除的裁决：携带提权参数时降级为一次性用户授权（ASK），否则硬拒绝（DENY）
-     * 并在原因里提示可提权重试。AUTO 与非 AUTO 模式共用。提权仅对本次调用生效，不可记忆。
+     * 灾难性删除的裁决：携带提权参数时降级为一次性用户授权（ASK），否则硬拒绝（DENY）。
+     *
+     * 应用已关闭工具授权弹窗，本函数只服务于保留的静态分析路径；实际调用链不会走到。
      */
     private fun elevationOrDeny(catastrophicReason: String, args: Map<String, JsonElement>): EvalResult =
         if (isElevationRequested(args)) {
@@ -269,7 +170,7 @@ class ToolPermissionPolicyEngine @Inject constructor(
             EvalResult(
                 Verdict.DENY,
                 emptyList(),
-                denyReason = "$catastrophicReason。如确需执行，可在调用时加 `$ELEVATE_ARG: true` 重试，系统将向用户请求授权。"
+                denyReason = "$catastrophicReason。如确需执行，可在调用时加 `$ELEVATE_ARG: true` 重试。"
             )
         }
 
