@@ -147,7 +147,6 @@ export default defineConfig({
           items: [
             { text: 'MCP 服务器', link: '/guide/mcp' },
             { text: '技能', link: '/guide/skills' },
-            { text: '插件', link: '/guide/plugins' },
             { text: '子代理', link: '/guide/subagent' },
             { text: 'Shizuku 工具', link: '/guide/shizuku' },
             { text: '自定义提示词', link: '/guide/custom-prompts' },

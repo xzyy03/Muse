@@ -127,7 +127,6 @@
     <string name="settings_image_gen_model">Image Generation Model</string>
     <string name="settings_mcp">MCP Servers</string>
     <string name="settings_skills">Skills</string>
-    <string name="settings_plugins">Plugins</string>
     <string name="settings_memory">Memory</string>
     <string name="memory_global_title">Global memories</string>
     <string name="memory_project_title">Project memories</string>

@@ -116,7 +116,6 @@ import compose.icons.feathericons.Moon
 import compose.icons.feathericons.MessageSquare
 import compose.icons.feathericons.Edit2
 import compose.icons.feathericons.PieChart
-import compose.icons.feathericons.Package
 import compose.icons.feathericons.Plus
 import compose.icons.feathericons.RefreshCw
 import compose.icons.feathericons.RotateCcw
@@ -157,7 +156,6 @@ internal enum class SettingsSection(@param:StringRes val titleRes: Int) {
     DefaultModels(R.string.settings_default_models),
     Mcp(R.string.settings_mcp),
     Skills(R.string.settings_skills),
-    Plugins(R.string.settings_plugins),
     Memory(R.string.settings_memory),
     Prompts(R.string.prompts_title),
     PromptDetail(R.string.prompts_title),
@@ -1028,19 +1026,6 @@ fun SettingsScreen(
                         viewModel.setSkillsEnabled(targets.map { it.name to it.scope }, enabled)
                     }
                 )
-                SettingsSection.Plugins -> {
-                    val pluginsViewModel: com.muse.feature.settings.presentation.PluginsViewModel =
-                        androidx.hilt.navigation.compose.hiltViewModel()
-                    val pluginsState by pluginsViewModel.state.collectAsStateWithLifecycle()
-                    PluginsSection(
-                        state = pluginsState,
-                        onToggle = pluginsViewModel::setEnabled,
-                        onDelete = pluginsViewModel::delete,
-                        onLoadMarket = { pluginsViewModel.loadMarket() },
-                        onSearchMarket = pluginsViewModel::setMarketQuery,
-                        onInstallMarket = pluginsViewModel::installMarket
-                    )
-                }
                 SettingsSection.Memory -> {
                     val memoryViewModel: MemoryViewModel =
                         androidx.hilt.navigation.compose.hiltViewModel()
@@ -1829,12 +1814,6 @@ internal fun SettingsMenu(
                 icon = FeatherIcons.Book,
                 title = stringResource(SettingsSection.Skills.titleRes),
                 onClick = { onOpen(SettingsSection.Skills) }
-            )
-            SettingsDivider()
-            SettingsRow(
-                icon = FeatherIcons.Package,
-                title = stringResource(SettingsSection.Plugins.titleRes),
-                onClick = { onOpen(SettingsSection.Plugins) }
             )
             SettingsDivider()
             SettingsRow(

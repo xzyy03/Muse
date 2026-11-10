@@ -160,10 +160,6 @@ class AIEditorApp : Application(), Configuration.Provider {
     @Inject
     lateinit var mcpManager: McpManager
 
-    /** 插件工具注册器：启动即把启用的插件工具注册进工具箱。 */
-    @Inject
-    lateinit var pluginToolRegistrar: com.muse.feature.agent.domain.plugin.PluginToolRegistrar
-
     /** MCP 配置仓库：启动即监听 mcp.json 外部直接编辑，改动数秒内刷新列表并触发重连。 */
     @Inject
     lateinit var mcpConfigRepository: com.muse.feature.agent.domain.mcp.McpConfigRepository
@@ -404,8 +400,6 @@ class AIEditorApp : Application(), Configuration.Provider {
         }
         // 连接已配置的 MCP server，把其工具注册进 ToolRegistry（内部自有 scope，失败不影响启动）。
         mcpManager.start()
-        // 扫描 ~/.muse/plugins/ 并注册启用的插件工具（读盘轻量，失败静默）。
-        appScope.launch { runCatching { pluginToolRegistrar.refresh() } }
         // 权限规则由 App 启动即常驻订阅（AI 评估随时要读到最新规则）；MCP 配置与技能列表
         // 改由各自消费方（McpManager / 设置页）按需订阅，无需在这里拉起。
         appScope.launch { permissionRulesRepository.startWatching() }
