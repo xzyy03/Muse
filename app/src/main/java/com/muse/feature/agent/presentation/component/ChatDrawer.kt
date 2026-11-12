@@ -126,6 +126,7 @@ import compose.icons.feathericons.HardDrive
 import compose.icons.feathericons.RefreshCw
 import compose.icons.feathericons.Server
 import compose.icons.feathericons.Settings
+import compose.icons.feathericons.User
 import compose.icons.feathericons.Trash2
 import compose.icons.feathericons.X
 import androidx.compose.ui.res.stringResource
@@ -177,6 +178,7 @@ fun ChatDrawerContent(
     onClearClipboard: () -> Unit,
     onNavigateToBrowser: (() -> Unit)? = null,
     onNavigateToSettings: () -> Unit,
+    onNavigateToRoles: (() -> Unit)? = null,
     searchQuery: String,
     searchState: ChatSearchState,
     onSearchQueryChange: (String) -> Unit,
@@ -371,6 +373,14 @@ fun ChatDrawerContent(
 
         CompactTypography(0.9f) {
         SettingsGroup {
+            if (onNavigateToRoles != null) {
+                SettingsRow(
+                    icon = FeatherIcons.User,
+                    title = stringResource(R.string.settings_roles),
+                    onClick = onNavigateToRoles
+                )
+                SettingsDivider()
+            }
             if (onNavigateToBrowser != null) {
                 SettingsRow(
                     icon = FeatherIcons.Globe,

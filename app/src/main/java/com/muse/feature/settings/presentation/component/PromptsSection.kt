@@ -89,7 +89,6 @@ internal fun PromptsSection(
     onOpenFragment: (PromptFragment) -> Unit,
     onDeleteFragment: (Int) -> Unit,
     onReorder: (List<PromptFragment>) -> Unit,
-    onToggleBuiltinDisabled: (Boolean) -> Unit,
     onBatchDeleteFragments: (List<Int>) -> Unit,
     /** 被关闭的片段编号。 */
     disabledNumbers: Set<Int> = emptySet(),
@@ -111,21 +110,6 @@ internal fun PromptsSection(
     val allSelected = selection.selectedCount > 0 && selection.selectedCount == selectableKeys.size
 
     Column(modifier = Modifier.fillMaxSize()) {
-        SettingsGroup(
-            modifier = Modifier
-                .padding(horizontal = Spacing.lg)
-                .padding(top = Spacing.sm)
-        ) {
-            SettingsRow(
-                icon = null,
-                title = stringResource(R.string.prompts_disable_builtin),
-                subtitle = stringResource(R.string.prompts_disable_builtin_hint),
-                trailing = {
-                    AppSwitch(checked = state.builtinDisabled, onCheckedChange = onToggleBuiltinDisabled)
-                }
-            )
-        }
-
         if (selection.isActive) {
             SelectionActionBar(
                 selectedCount = selection.selectedCount,

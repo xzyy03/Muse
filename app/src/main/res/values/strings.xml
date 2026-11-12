@@ -391,6 +391,7 @@
     <string name="notification_approval_action_allow">允许</string>
     <string name="notification_approval_action_reject">拒绝</string>
     <string name="notification_approval_action_approve_plan">批准</string>
+    <string name="settings_roles">角色</string>
     <string name="settings_app_permissions">软件权限</string>
     <string name="settings_permission_apk_install">安装未知应用</string>
     <string name="settings_permission_apk_install_desc">允许安装 APK 安装包</string>
@@ -1355,7 +1356,7 @@
     <string name="mcp_details">详情</string>
 
     <!-- Custom Prompts -->
-    <string name="prompts_title">提示词</string>
+    <string name="prompts_title">系统规则</string>
     <string name="prompts_sort_long_press">长按可调整顺序</string>
     <string name="prompts_empty">暂无可用片段</string>
     <string name="prompts_source_project">项目</string>

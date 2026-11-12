@@ -1,5 +1,7 @@
 package com.muse.feature.settings.presentation.component
 
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.muse.feature.settings.presentation.RootAccessViewModel
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -73,6 +75,10 @@ internal fun AppPermissionsSection(
     var batteryExempt by remember { mutableStateOf(isIgnoringBatteryOptimizations(context)) }
 
     var showStorageDeniedDialog by remember { mutableStateOf(false) }
+    val rootAccessViewModel: RootAccessViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val rootState by rootAccessViewModel.state.collectAsStateWithLifecycle()
+    var showRootDialog by remember { mutableStateOf(false) }
 
     // 从系统权限设置页返回时刷新状态。
     LifecycleResumeEffect(Unit) {
@@ -186,6 +192,27 @@ internal fun AppPermissionsSection(
             )
             SettingsDivider()
             SettingsRow(
+                icon = FeatherIcons.Shield,
+                title = "Root 权限",
+                subtitle = "受控 root：系统区只读，写共享目录需确认",
+                onClick = {
+                    showRootDialog = true
+                    rootAccessViewModel.refresh()
+                },
+                trailing = {
+                    Text(
+                        text = when {
+                            rootState.checking -> "检测中"
+                            rootState.available -> "已可用"
+                            else -> "不可用"
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+            SettingsDivider()
+            SettingsRow(
                 icon = FeatherIcons.Smile,
                 title = stringResource(R.string.pet_overlay_title),
                 subtitle = stringResource(R.string.pet_overlay_desc),
@@ -222,6 +249,17 @@ internal fun AppPermissionsSection(
             message = stringResource(R.string.settings_permission_storage_denied_desc),
             onGoToSettings = { OemAutoStartGuide.openAppDetails(context) },
             onDismiss = { showStorageDeniedDialog = false }
+        )
+    }
+
+    if (showRootDialog) {
+        RootAccessDialog(
+            state = rootState,
+            onRefresh = rootAccessViewModel::refresh,
+            onRevoke = rootAccessViewModel::revoke,
+            onClearAll = rootAccessViewModel::clearAll,
+            onResetFuse = rootAccessViewModel::resetFuse,
+            onDismiss = { showRootDialog = false }
         )
     }
 }

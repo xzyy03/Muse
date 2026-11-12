@@ -1,5 +1,6 @@
 package com.muse.feature.settings.presentation.component
 
+import com.muse.feature.settings.presentation.RolesViewModel
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.BackHandler
@@ -158,6 +159,7 @@ internal enum class SettingsSection(@param:StringRes val titleRes: Int) {
     Skills(R.string.settings_skills),
     Memory(R.string.settings_memory),
     Prompts(R.string.prompts_title),
+    Roles(R.string.settings_roles),
     PromptDetail(R.string.prompts_title),
     PromptEditor(R.string.prompts_title),
     SkillDetail(R.string.settings_skills),
@@ -308,6 +310,7 @@ fun SettingsScreen(
         when (initialSectionKey) {
             "providers" -> SettingsSection.Providers
             "mcp" -> SettingsSection.Mcp
+            "roles" -> SettingsSection.Roles
             else -> null
         }
     }
@@ -1026,6 +1029,24 @@ fun SettingsScreen(
                         viewModel.setSkillsEnabled(targets.map { it.name to it.scope }, enabled)
                     }
                 )
+                SettingsSection.Roles -> {
+                    val rolesViewModel: RolesViewModel =
+                        androidx.hilt.navigation.compose.hiltViewModel()
+                    val rolesState by rolesViewModel.state.collectAsStateWithLifecycle()
+                    val pendingCrop by rolesViewModel.pendingCrop.collectAsStateWithLifecycle()
+                    RolesSection(
+                        state = rolesState,
+                        pendingCrop = pendingCrop,
+                        onSelect = rolesViewModel::select,
+                        onCreate = rolesViewModel::create,
+                        onSave = rolesViewModel::save,
+                        onDelete = rolesViewModel::delete,
+                        onPickAvatar = rolesViewModel::pickAvatar,
+                        onCancelCrop = rolesViewModel::cancelCrop,
+                        onCommitCrop = rolesViewModel::commitAvatar,
+                        onRemoveAvatar = rolesViewModel::removeAvatar
+                    )
+                }
                 SettingsSection.Memory -> {
                     val memoryViewModel: MemoryViewModel =
                         androidx.hilt.navigation.compose.hiltViewModel()
@@ -1046,7 +1067,6 @@ fun SettingsScreen(
                         },
                         onDeleteFragment = promptsViewModel::deleteFragment,
                         onReorder = promptsViewModel::reorderFragments,
-                        onToggleBuiltinDisabled = promptsViewModel::setBuiltinDisabled,
                         onBatchDeleteFragments = promptsViewModel::deleteFragments,
                         disabledNumbers = promptsState.disabledNumbers,
                         onToggleFragment = promptsViewModel::setFragmentEnabled

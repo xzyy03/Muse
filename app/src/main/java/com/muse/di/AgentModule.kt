@@ -6,6 +6,8 @@ import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.muse.feature.agent.data.local.dao.AgentMessageDao
+import com.muse.feature.agent.domain.tool.root.RootShellTool
+import com.muse.feature.agent.data.local.dao.RootGrantDao
 import com.muse.feature.agent.data.local.dao.ChatSessionDao
 import com.muse.feature.agent.data.local.dao.CheckpointDao
 import com.muse.feature.agent.data.local.dao.LlmCallRecordDao
@@ -118,6 +120,10 @@ object AgentModule {
         ).addMigrations(*MigrationLoader.loadMigrations(context))
             .build()
     }
+
+    @Provides
+    @Singleton
+    fun provideRootGrantDao(database: AgentDatabase): RootGrantDao = database.rootGrantDao()
 
     @Provides
     @Singleton
@@ -361,6 +367,7 @@ object AgentModule {
         generateImageTool: GenerateImageTool,
         executeCommandTool: ExecuteCommandTool,
         shizukuTool: ShizukuTool,
+        rootShellTool: RootShellTool,
         terminalSessionTool: TerminalSessionTool,
         listFilesTool: ListFilesTool,
         searchCodeTool: SearchCodeTool,
@@ -385,6 +392,7 @@ object AgentModule {
             register("generateImage", generateImageTool)
             register("Bash", executeCommandTool)
             register("Shizuku", shizukuTool)
+            register("Root", rootShellTool)
             register("terminal", terminalSessionTool)
             register("list", listFilesTool)
             register("search", searchCodeTool)

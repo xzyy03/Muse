@@ -1345,7 +1345,7 @@
     <string name="mcp_details">Details</string>
 
     <!-- Custom Prompts -->
-    <string name="prompts_title">Prompts</string>
+    <string name="prompts_title">System rules</string>
     <string name="prompts_sort_long_press">Long-press to reorder</string>
     <string name="prompts_empty">No fragments available</string>
     <string name="prompts_source_project">Project</string>

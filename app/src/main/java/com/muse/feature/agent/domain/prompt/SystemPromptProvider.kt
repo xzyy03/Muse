@@ -39,7 +39,8 @@ class SystemPromptProvider @Inject constructor(
     private val promptFragmentCatalog: PromptFragmentCatalog,
     private val containerInstaller: ContainerInstaller,
     private val agentDefinitionRepository: AgentDefinitionRepository,
-    private val executionModeHolder: ExecutionModeHolder
+    private val executionModeHolder: ExecutionModeHolder,
+    private val roleRepository: com.muse.feature.agent.domain.role.RoleRepository
 ) {
     // 抽象独立的 Source
     interface PromptSource {
@@ -48,8 +49,13 @@ class SystemPromptProvider @Inject constructor(
 
     private inner class StaticRuleSource : PromptSource {
         // 每次都重新读盘：未编辑时字符串一致，KV Cache 照常命中；编辑后立即生效，无需重启。
-        // 技能/记忆等运行期内容由末尾的 99-runtime-context.md 片段用 {{MUSE_*}} 变量承载。
-        override fun build(ctx: AgentContext): String = promptFragmentCatalog.renderStatic(ctx.projectRoot)
+        // 技能/记忆等运行期内容由 10-rules.md 末尾的 {{MUSE_*}} 变量承载。
+        override fun build(ctx: AgentContext): String {
+            val rules = promptFragmentCatalog.renderStatic(ctx.projectRoot)
+            val identity = runCatching { roleRepository.current().identity }.getOrDefault("").trim()
+            if (identity.isEmpty()) return rules
+            return "$identity\n\n$rules"
+        }
     }
 
     private inner class ActiveSkillsSource : PromptSource {

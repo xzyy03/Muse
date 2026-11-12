@@ -71,7 +71,12 @@ class PromptFragmentCatalog @Inject constructor(
     /** 编辑/新增的写入层：有工作区写项目层，否则写全局层。 */
     fun writableDir(projectRoot: String?): File = projectDir(projectRoot) ?: globalDir
 
-    /** 按编号升序列出所有生效片段。 */
+    /**
+     * 按编号升序列出所有生效片段。
+     *
+     * 00 号是「身份」，已迁到角色（见 com.muse.feature.agent.domain.role.RoleRepository），
+     * 这里统一排除，避免身份既在角色里、又作为系统规则被注入一次。
+     */
     fun list(projectRoot: String?): List<PromptFragment> {
         val builtin = builtinFiles()
         val project = numberedFragments(projectDir(projectRoot))
@@ -81,7 +86,9 @@ class PromptFragmentCatalog @Inject constructor(
             addAll(project.keys)
             addAll(global.keys)
         }
-        val all = numbers.sorted().mapNotNull { resolve(it, builtin, project, global) }
+        val all = numbers.sorted()
+            .mapNotNull { resolve(it, builtin, project, global) }
+            .filterNot { it.number == IDENTITY_FRAGMENT_NUMBER }
         // 「完全禁用内置提示词」时列表只保留自定义来源，与注入结果一致。
         return if (isBuiltinDisabled()) {
             all.filter {
@@ -328,6 +335,9 @@ class PromptFragmentCatalog @Inject constructor(
 
     private companion object {
         const val TAG = "PromptFragmentCatalog"
+
+        /** 00 号是身份，已迁到角色管理，不再作为系统规则片段出现。 */
+        const val IDENTITY_FRAGMENT_NUMBER = 0
         const val ASSET_DIR = "prompts"
         const val CUSTOM_DIR = "prompts.custom"
         const val LOCAL_DIR = "prompts"

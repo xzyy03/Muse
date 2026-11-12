@@ -650,6 +650,10 @@ fun AppNavigation(
                 navController.navigate("settings")
                 if (!permanentDrawer) scope.launch { drawerState.snapTo(DrawerValue.Closed) }
             },
+            onNavigateToRoles = {
+                navController.navigate("settings?section=roles&from=chat")
+                if (!permanentDrawer) scope.launch { drawerState.snapTo(DrawerValue.Closed) }
+            },
             searchQuery = chatSearchQuery,
             searchState = chatSearchState,
             onSearchQueryChange = { agentViewModel.updateChatSearchQuery(it) },

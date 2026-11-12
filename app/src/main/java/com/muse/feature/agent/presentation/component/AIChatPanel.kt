@@ -89,6 +89,7 @@ import com.muse.feature.agent.domain.tool.question.UserQuestionAnswer
 import com.muse.feature.agent.presentation.AgentUIMessage
 import com.muse.feature.agent.presentation.AgentUIState
 import com.muse.feature.agent.presentation.AIAgentViewModel
+import com.muse.feature.agent.presentation.RootApprovalViewModel
 import com.muse.feature.agent.presentation.MessageRole
 import com.muse.feature.agent.presentation.QueuedRequest
 import com.muse.feature.agent.presentation.hasVisibleContent
@@ -730,6 +731,9 @@ fun AIChatPanel(
     val pendingPermission by viewModel.pendingToolPermission.collectAsStateWithLifecycle()
     val pendingPermissionSessionTitle by viewModel.pendingToolPermissionSessionTitle.collectAsStateWithLifecycle()
     val pendingQuestion by viewModel.pendingUserQuestion.collectAsStateWithLifecycle()
+    val rootApprovalViewModel: RootApprovalViewModel =
+        androidx.hilt.navigation.compose.hiltViewModel()
+    val pendingRootApproval by rootApprovalViewModel.pending.collectAsStateWithLifecycle()
     val currentTodoItems by viewModel.currentSessionTodoItems.collectAsStateWithLifecycle()
     val queuedRequests by viewModel.queuedRequests.collectAsStateWithLifecycle()
     val targetRewindMessageId by viewModel.targetRewindMessageId.collectAsStateWithLifecycle()
@@ -1797,6 +1801,13 @@ fun AIChatPanel(
                         forceCollapse = dashboardCollapseActive
                     )
                 }
+            }
+
+            pendingRootApproval?.let { request ->
+                RootApprovalPanel(
+                    request = request,
+                    onChoose = { choice -> rootApprovalViewModel.resolve(request.id, choice) }
+                )
             }
 
             val planApproval by viewModel.pendingPlanApproval.collectAsStateWithLifecycle()
