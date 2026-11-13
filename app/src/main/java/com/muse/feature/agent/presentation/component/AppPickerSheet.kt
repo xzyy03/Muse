@@ -43,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -58,6 +59,20 @@ import compose.icons.feathericons.Search
 import compose.icons.feathericons.X
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+
+/**
+ * 把列表消费后剩余的纵向滚动全部吞掉。
+ *
+ * 不吞的话会继续传给 ModalBottomSheet 的嵌套滚动，弹层试图再展开又弹回，表现为整页抖动。
+ */
+private val listEndScrollConsumer = object : androidx.compose.ui.input.nestedscroll.NestedScrollConnection {
+    override fun onPostScroll(
+        consumed: androidx.compose.ui.geometry.Offset,
+        available: androidx.compose.ui.geometry.Offset,
+        source: androidx.compose.ui.input.nestedscroll.NestedScrollSource
+    ): androidx.compose.ui.geometry.Offset = available
+}
 
 /** 已安装应用条目。apkPath 用于导出 APK。 */
 internal data class InstalledAppEntry(
@@ -163,7 +178,14 @@ internal fun AppPickerSheet(
                     )
                 }
             } else {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .nestedScroll(listEndScrollConsumer),
+                    // 滑到两端继续拖动时不做拉伸回弹：Android 12+ 的 stretch 效果叠加
+                    // 底部弹层的嵌套滚动，会让整页来回抖。
+                    overscrollEffect = null
+                ) {
                     items(filtered, key = { it.packageName }) { app ->
                         AppRow(app = app, onClick = { onPick(app) })
                         HorizontalDivider(

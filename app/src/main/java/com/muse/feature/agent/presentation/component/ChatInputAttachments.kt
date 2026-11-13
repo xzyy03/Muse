@@ -484,10 +484,10 @@ internal fun AttachmentSheet(
                 modifier = Modifier.padding(bottom = Spacing.sm)
             )
             AttachmentSheetItem(
-                icon = FeatherIcons.FileText,
-                title = stringResource(com.muse.R.string.chat_upload_file),
-                enabled = canUploadFiles,
-                onClick = onUploadFile
+                icon = FeatherIcons.Camera,
+                title = stringResource(com.muse.R.string.chat_take_photo),
+                enabled = canUploadImages,
+                onClick = onTakePhoto
             )
             AttachmentSheetItem(
                 icon = FeatherIcons.Image,
@@ -496,10 +496,10 @@ internal fun AttachmentSheet(
                 onClick = onUploadImage
             )
             AttachmentSheetItem(
-                icon = FeatherIcons.Camera,
-                title = stringResource(com.muse.R.string.chat_take_photo),
-                enabled = canUploadImages,
-                onClick = onTakePhoto
+                icon = FeatherIcons.FileText,
+                title = stringResource(com.muse.R.string.chat_upload_file),
+                enabled = canUploadFiles,
+                onClick = onUploadFile
             )
             AttachmentSheetItem(
                 icon = FeatherIcons.Package,
