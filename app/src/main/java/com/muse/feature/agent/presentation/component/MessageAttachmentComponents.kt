@@ -356,14 +356,24 @@ private fun VideoClip(attachment: AgentAttachment) {
                 val stamp = attachment.sizeBytes.toString() + "-" + attachment.fileName.hashCode()
                 val target = File(dir, stamp + "-" + attachment.fileName.ifBlank { "clip.mp4" })
                 if (!target.isFile || target.length() == 0L) {
-                    // localPath 是 sendFile 落库时的宿主路径，历史消息里可能为空或已失效；
-                    // 容器路径始终有效，按它读能覆盖这两种情况。
-                    val bytes = runCatching { fileAccess.readBytes(attachment.localPath) }
+                    // 优先 copyToLocal：远程模式走 SFTP 直接落盘，不受 readBytes 的 8MB 上限约束；
+                    // 视频几乎都超过那个上限，用 readBytes 会让远程视频直接失败。
+                    val copied = runCatching { fileAccess.copyToLocal(attachment.containerPath) }
                         .getOrNull()
-                        ?.takeIf { it.isNotEmpty() }
-                        ?: fileAccess.readBytes(attachment.containerPath)
-                    require(bytes.isNotEmpty()) { "视频为空" }
-                    target.writeBytes(bytes)
+                        ?.takeIf { it.isFile && it.length() > 0L }
+                    if (copied != null) {
+                        copied.inputStream().use { input ->
+                            target.outputStream().use { output -> input.copyTo(output) }
+                        }
+                    } else {
+                        // localPath 是 sendFile 落库时的宿主路径，历史消息里可能为空或已失效。
+                        val bytes = runCatching { fileAccess.readBytes(attachment.localPath) }
+                            .getOrNull()
+                            ?.takeIf { it.isNotEmpty() }
+                            ?: fileAccess.readBytes(attachment.containerPath)
+                        require(bytes.isNotEmpty()) { "视频为空" }
+                        target.writeBytes(bytes)
+                    }
                 }
                 android.net.Uri.fromFile(target)
             }.onFailure { loadError = it.message ?: it.javaClass.simpleName }.getOrNull()
@@ -423,13 +433,19 @@ private fun HtmlClip(attachment: AgentAttachment) {
         fileAccess
     ) {
         value = if (fileAccess == null) null else withContext(Dispatchers.IO) {
+            // 先 copyToLocal 再读：远程模式下 readFile 有 8MB 上限，
+            // 带内嵌资源的页面很容易超，落到本地临时文件再读才稳。
             runCatching {
-                fileAccess.readFile(attachment.containerPath)
+                fileAccess.copyToLocal(attachment.containerPath).readText()
             }.getOrElse {
-                // 容器路径读不到时退回宿主本地路径（远程模式的历史消息可能只剩本地副本）。
                 runCatching {
-                    fileAccess.copyToLocal(attachment.localPath).readText()
-                }.getOrNull()
+                    fileAccess.readFile(attachment.containerPath)
+                }.getOrElse {
+                    // 容器路径读不到时退回宿主本地路径（历史消息可能只剩本地副本）。
+                    runCatching {
+                        fileAccess.copyToLocal(attachment.localPath).readText()
+                    }.getOrNull()
+                }
             }
         }
     }

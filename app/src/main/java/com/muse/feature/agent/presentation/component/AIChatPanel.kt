@@ -677,6 +677,8 @@ fun AIChatPanel(
     workspaceViewModel: WorkspaceViewModel? = null,
     onOpenDrawer: () -> Unit,
     showMenuButton: Boolean = true,
+    /** 内置浏览器的 UA：聊天里内嵌网页时沿用同一个，避免部分站点按 UA 走不同布局。 */
+    browserUserAgent: String? = null,
     /** 大屏右栏当前开的是终端 / Git 时，顶栏对应图标高亮。 */
     terminalActive: Boolean = false,
     gitActive: Boolean = false,
@@ -1576,6 +1578,7 @@ fun AIChatPanel(
         LocalImageViewer provides imageViewerState,
         LocalAttachmentOpener provides attachmentOpener,
         LocalAttachmentFileAccess provides viewModel.fileAccess,
+        LocalBrowserUserAgent provides browserUserAgent,
         LocalSubAgentCardHost provides SubAgentCardHost(
             states = subAgentCards,
             onOpen = { id -> viewModel.selectSession(id) },

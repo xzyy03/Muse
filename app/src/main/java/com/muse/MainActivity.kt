@@ -390,6 +390,18 @@ fun AppNavigation(
     val settingsViewModel: SettingsViewModel = hiltViewModel()
     val workspaceViewModel: WorkspaceViewModel = hiltViewModel()
 
+    // 内嵌网页沿用内置浏览器的 UA。BrowserManager 是单例，从 Application 的 EntryPoint 取，
+    // 免得把 UA 字符串沿着 NavHost 逐层传下来。
+    val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
+    val chatBrowserUserAgent = remember(appContext) {
+        runCatching {
+            dagger.hilt.android.EntryPointAccessors
+                .fromApplication(appContext, BrowserUserAgentEntryPoint::class.java)
+                .browserManager()
+                .resolveCurrentUserAgent()
+        }.getOrNull()
+    }
+
     // ── 首次启动引导 ──
     val onboardingStateHolder = remember { OnboardingStateHolder() }
     val onboardingUiState by onboardingStateHolder.state.collectAsStateWithLifecycle()
@@ -711,6 +723,7 @@ fun AppNavigation(
                                     workspaceViewModel = workspaceViewModel,
                                     onOpenDrawer = { scope.launch { drawerState.open() } },
                                     showMenuButton = !permanentDrawer,
+                                    browserUserAgent = chatBrowserUserAgent,
                                     onNavigateToTerminal = { openWorkbench(WorkbenchPaneKind.TERMINAL) },
                                     onNavigateToGit = { openWorkbench(WorkbenchPaneKind.GIT) },
                                     onNavigateToBrowser = { openWorkbench(WorkbenchPaneKind.BROWSER) },
@@ -1176,4 +1189,11 @@ internal fun splitPathAndLine(path: String): Pair<String, Int> {
     val cleaned = path.substringBefore('#').trim()
     val m = TRAILING_LINE.find(cleaned) ?: return cleaned to 0
     return m.groupValues[1] to (m.groupValues[2].toIntOrNull() ?: 0)
+}
+
+/** 只暴露 BrowserManager 供 UI 读取当前 UA。 */
+@dagger.hilt.EntryPoint
+@dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
+interface BrowserUserAgentEntryPoint {
+    fun browserManager(): com.muse.feature.agent.domain.tool.browser.BrowserManager
 }
