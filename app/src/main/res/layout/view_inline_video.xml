@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 内联视频播放器视图。
+     surface_type 指定 texture_view：SurfaceView 在 Compose 的滚动容器里会被合成层以黑块呈现，
+     TextureView 走普通 View 绘制路径，行为正常。 -->
+<androidx.media3.ui.PlayerView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/inline_video_view"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black"
+    app:surface_type="texture_view"
+    app:use_controller="true"
+    app:show_buffering="when_playing"
+    app:resize_mode="fit" />

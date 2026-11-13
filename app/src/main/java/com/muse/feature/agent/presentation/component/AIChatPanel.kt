@@ -1575,6 +1575,7 @@ fun AIChatPanel(
         LocalMarkdownImageTransformer provides markdownImageTransformer,
         LocalImageViewer provides imageViewerState,
         LocalAttachmentOpener provides attachmentOpener,
+        LocalAttachmentFileAccess provides viewModel.fileAccess,
         LocalSubAgentCardHost provides SubAgentCardHost(
             states = subAgentCards,
             onOpen = { id -> viewModel.selectSession(id) },

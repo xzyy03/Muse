@@ -1,5 +1,6 @@
 package com.muse.feature.agent.presentation.component
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -69,6 +70,9 @@ import kotlinx.coroutines.withContext
 // 代码块与行内代码共用字体。系统等宽（FontFamily.Monospace）缺下标字形且不回落，
 // 内置 JetBrains Mono NL 经资源加载可走系统 fallback，能显示 ₀-₉ 等下标/上标字符。
 private val CodeFontFamily = FontFamily(Font(R.font.jetbrains_mono_nl))
+
+/** 就地渲染成页面的代码块语言标记。 */
+private val HTML_LANGUAGES = setOf("html", "htm")
 
 internal class MarkdownRenderCache(
     private val maxEntries: Int = 80
@@ -388,6 +392,22 @@ private fun SafeMarkdownHighlightedCode(
     highlightsBuilder: Highlights.Builder,
     showHeader: Boolean,
 ) {
+    // HTML 代码块就地渲染成页面：聊天里看效果比读源码直观，需要时仍可切回源码。
+    if (language?.trim()?.lowercase() in HTML_LANGUAGES) {
+        var fullscreen by remember(code) { mutableStateOf(false) }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+        ) {
+            InlineHtmlView(html = code, onFullscreen = { fullscreen = true })
+        }
+        if (fullscreen) {
+            FullscreenHtmlDialog(html = code, onDismiss = { fullscreen = false })
+        }
+        return
+    }
+
     val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val cached = CodeHighlightCache.get(code, language, isDark)
     val highlighted: AnnotatedString by produceState(

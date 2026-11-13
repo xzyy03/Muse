@@ -1,9 +1,14 @@
 package com.muse.feature.agent.presentation.component
 
+import com.muse.feature.agent.presentation.isVideo
+import com.muse.feature.agent.presentation.isHtml
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
 import androidx.compose.foundation.Image as ComposeImage
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,6 +16,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -65,7 +71,9 @@ private val AttachmentThumbSize = 44.dp
 @Composable
 internal fun MessageAttachmentList(
     attachments: List<AgentAttachment>,
-    onClick: ((AgentAttachment) -> Unit)? = null
+    onClick: ((AgentAttachment) -> Unit)? = null,
+    /** 用户自己发出的附件：只给缩略图行，不就地展开播放器与页面渲染。 */
+    compact: Boolean = false
 ) {
     Column(
         modifier = Modifier
@@ -74,7 +82,12 @@ internal fun MessageAttachmentList(
         verticalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
         attachments.forEach { attachment ->
-            MessageAttachmentRow(attachment = attachment, onClick = onClick)
+            when {
+                compact -> MessageAttachmentRow(attachment = attachment, onClick = onClick)
+                attachment.isVideo -> VideoClip(attachment)
+                attachment.isHtml -> HtmlClip(attachment)
+                else -> MessageAttachmentRow(attachment = attachment, onClick = onClick)
+            }
         }
     }
 }
@@ -311,4 +324,128 @@ private fun isApk(attachment: AgentAttachment): Boolean {
     if (attachment.mimeType.equals("application/vnd.android.package-archive", ignoreCase = true)) return true
     val name = attachment.fileName.lowercase()
     return name.endsWith(".apk") || name.endsWith(".apks") || name.endsWith(".xapk")
+}
+
+/** 附件读取用的 FileAccessProvider：聊天区由上层提供，缺省时内联渲染降级成文件行。 */
+internal val LocalAttachmentFileAccess = staticCompositionLocalOf<FileAccessProvider?> { null }
+
+/**
+ * 视频附件：直接内联播放。
+ *
+ * 先把字节落到应用私有 cache 再播放：容器模式的路径经过 PRoot rootfs 映射，
+ * ExoPlayer 在 App 进程里按原串打开会指向不存在的文件；而 content:// 又需要额外的
+ * 读取授权链，部分机型直接黑屏。落到真实存在的私有文件最稳。
+ */
+@Composable
+private fun VideoClip(attachment: AgentAttachment) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val fileAccess = LocalAttachmentFileAccess.current
+    var fullscreenUri by remember { mutableStateOf<android.net.Uri?>(null) }
+    var preparing by remember(attachment.localPath) { mutableStateOf(true) }
+    var loadError by remember(attachment.localPath) { mutableStateOf<String?>(null) }
+
+    val mediaUri by produceState<android.net.Uri?>(
+        initialValue = null,
+        attachment.localPath,
+        attachment.containerPath,
+        fileAccess
+    ) {
+        value = if (fileAccess == null) null else withContext(Dispatchers.IO) {
+            runCatching {
+                val dir = File(context.cacheDir, "media-preview").apply { mkdirs() }
+                val stamp = attachment.sizeBytes.toString() + "-" + attachment.fileName.hashCode()
+                val target = File(dir, stamp + "-" + attachment.fileName.ifBlank { "clip.mp4" })
+                if (!target.isFile || target.length() == 0L) {
+                    // localPath 是 sendFile 落库时的宿主路径，历史消息里可能为空或已失效；
+                    // 容器路径始终有效，按它读能覆盖这两种情况。
+                    val bytes = runCatching { fileAccess.readBytes(attachment.localPath) }
+                        .getOrNull()
+                        ?.takeIf { it.isNotEmpty() }
+                        ?: fileAccess.readBytes(attachment.containerPath)
+                    require(bytes.isNotEmpty()) { "视频为空" }
+                    target.writeBytes(bytes)
+                }
+                android.net.Uri.fromFile(target)
+            }.onFailure { loadError = it.message ?: it.javaClass.simpleName }.getOrNull()
+        }
+        preparing = false
+    }
+
+    val shown = mediaUri
+    if (shown == null) {
+        // 还在准备 → 占位；准备失败 → 说明原因。直接回退成文件行会让人以为功能没生效。
+        if (preparing) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(120.dp)
+                    .clip(RoundedCornerShape(Radius.md))
+                    .background(chatMutedSurfaceColor()),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "正在准备视频…",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            MessageAttachmentRow(attachment = attachment, onClick = null)
+            Text(
+                text = "无法读取视频文件：${loadError ?: "未知原因"}",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(start = Spacing.sm, top = 2.dp)
+            )
+        }
+    } else {
+        InlineVideoPlayer(
+            mediaUri = shown,
+            modifier = Modifier.padding(top = Spacing.xs),
+            onFullscreen = { fullscreenUri = shown }
+        )
+    }
+
+    fullscreenUri?.let { target ->
+        FullscreenVideoDialog(mediaUri = target, onDismiss = { fullscreenUri = null })
+    }
+}
+
+/** HTML 附件：内联 WebView 渲染，可切源码、可全屏。 */
+@Composable
+private fun HtmlClip(attachment: AgentAttachment) {
+    val fileAccess = LocalAttachmentFileAccess.current
+    var fullscreen by remember { mutableStateOf(false) }
+
+    val html by produceState<String?>(
+        initialValue = null,
+        attachment.containerPath,
+        fileAccess
+    ) {
+        value = if (fileAccess == null) null else withContext(Dispatchers.IO) {
+            runCatching {
+                fileAccess.readFile(attachment.containerPath)
+            }.getOrElse {
+                // 容器路径读不到时退回宿主本地路径（远程模式的历史消息可能只剩本地副本）。
+                runCatching {
+                    fileAccess.copyToLocal(attachment.localPath).readText()
+                }.getOrNull()
+            }
+        }
+    }
+
+    val content = html
+    if (content == null) {
+        MessageAttachmentRow(attachment = attachment, onClick = null)
+    } else {
+        InlineHtmlView(
+            html = content,
+            modifier = Modifier.padding(top = Spacing.xs),
+            onFullscreen = { fullscreen = true }
+        )
+    }
+
+    if (fullscreen && content != null) {
+        FullscreenHtmlDialog(html = content, onDismiss = { fullscreen = false })
+    }
 }

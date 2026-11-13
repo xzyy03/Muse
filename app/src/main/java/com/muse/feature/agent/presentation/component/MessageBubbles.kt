@@ -372,7 +372,10 @@ internal fun AgentMessageItem(
                     }
                 }
                 if ((isUser || message.role == MessageRole.ASSISTANT) && hasAttachments) {
-                    MessageAttachmentList(attachments = message.attachments)
+                    MessageAttachmentList(
+                        attachments = message.attachments,
+                        compact = isUser
+                    )
                 }
                 // 气泡下方的元信息行（工具消息不显示）：用户消息每条都常驻「时间 + 复制/回退/更多」，
                 // 助手消息只挂整段会话最新的一条，避免每条回复下面都吊一排按钮把聊天记录割碎。

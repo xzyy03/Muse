@@ -162,9 +162,17 @@ class SendFileTool @Inject constructor(
             "webp" -> "image/webp"
             "gif" -> "image/gif"
             "bmp" -> "image/bmp"
+            // 视频要在 UI 里就地播放，MIME 必须是真的 video/*，否则只会渲染成文件行。
+            "mp4", "m4v" -> "video/mp4"
+            "webm" -> "video/webm"
+            "mkv" -> "video/x-matroska"
+            "mov" -> "video/quicktime"
+            "3gp" -> "video/3gpp"
             "pdf" -> "application/pdf"
             "zip" -> "application/zip"
-            "txt", "md", "kt", "java", "js", "ts", "json", "xml", "html", "css", "py", "sh", "gradle", "kts" -> "text/plain"
+            // HTML 单独给 text/html：UI 靠它判断能不能就地渲染页面。
+            "html", "htm" -> "text/html"
+            "txt", "md", "kt", "java", "js", "ts", "json", "xml", "css", "py", "sh", "gradle", "kts" -> "text/plain"
             "apk" -> "application/vnd.android.package-archive"
             else -> null
         }

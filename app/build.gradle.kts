@@ -112,8 +112,8 @@ android {
         //      保活需换 specialUse。
         // 代价：不能上 Google Play。
         targetSdk = 28
-        versionCode = 1847
-        versionName = "1.11.26"
+        versionCode = 1853
+        versionName = "1.11.32"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -397,6 +397,10 @@ dependencies {
 
     // Android WebKit 扩展（提供现代深色模式 WebSettingsCompat / ForceDark 支持）
     implementation("androidx.webkit:webkit:1.12.1")
+
+    // 聊天内联视频播放（1.11.1 在本地 Gradle 缓存中，可离线构建）
+    implementation("androidx.media3:media3-exoplayer:1.11.1")
+    implementation("androidx.media3:media3-ui:1.11.1")
 
     // Shizuku：以 adb shell（uid 2000）身份执行命令。api 提供 Shizuku 类与 UserService 绑定，
     // provider 注册 ShizukuProvider（见 AndroidManifest）以跨进程获取 binder。
