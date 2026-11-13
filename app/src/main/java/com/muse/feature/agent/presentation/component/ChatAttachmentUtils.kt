@@ -298,3 +298,40 @@ internal fun formatBytes(bytes: Long): String {
         else -> "$bytes B"
     }
 }
+
+/**
+ * 把已装应用的 APK 复制进工作区附件目录。
+ *
+ * 不走 copyUriToWorkspace：APK 在 /data/app 下，FileProvider 的 paths 不覆盖那里，
+ * 生成 content:// 会直接抛 IllegalArgumentException。这里直接按文件流写入，
+ * 也省掉一份大文件的重复拷贝。
+ */
+internal suspend fun uploadApkFile(
+    apkPath: String,
+    displayName: String,
+    fileAccess: FileAccessProvider
+): UploadedWorkspaceFile = withContext(Dispatchers.IO) {
+    val source = File(apkPath)
+    require(source.isFile && source.length() > 0L) { "应用安装包不可读" }
+
+    val attachmentsDir = "${WorkspacePathMapper.CONTAINER_ROOT}/.muse/attachments"
+    val safeName = sanitizeUploadFileName(displayName).let {
+        if (it.endsWith(".apk", ignoreCase = true)) it else "$it.apk"
+    }
+    val fileName = uniqueUploadName(fileAccess, attachmentsDir, safeName)
+    val containerPath = "$attachmentsDir/$fileName"
+
+    val sizeBytes = source.inputStream().use { input ->
+        fileAccess.writeStream(containerPath, input, overwrite = true)
+    }
+    val localFile = fileAccess.copyToLocal(containerPath)
+
+    UploadedWorkspaceFile(
+        fileName = fileName,
+        containerPath = containerPath,
+        localPath = localFile.absolutePath,
+        mimeType = "application/vnd.android.package-archive",
+        sizeBytes = sizeBytes,
+        image = null
+    )
+}

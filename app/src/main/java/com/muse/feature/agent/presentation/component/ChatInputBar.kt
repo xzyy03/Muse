@@ -182,6 +182,7 @@ internal fun ChatInputBar(
     onUploadFile: () -> Unit,
     onUploadImage: () -> Unit,
     onTakePhoto: () -> Unit,
+    onUploadApp: () -> Unit,
     slashCommands: List<SlashCommand> = emptyList(),
     fileMentionState: FileMentionState = FileMentionState.Idle,
     onFileMentionOpen: () -> Unit = {},
@@ -672,6 +673,10 @@ internal fun ChatInputBar(
             onTakePhoto = {
                 showAttachmentSheet = false
                 onTakePhoto()
+            },
+            onUploadApp = {
+                showAttachmentSheet = false
+                onUploadApp()
             },
             onDismiss = { showAttachmentSheet = false }
         )

@@ -70,6 +70,7 @@ import com.muse.core.ui.decodeSampledBitmap
 import com.muse.feature.agent.presentation.QueuedRequest
 import com.muse.core.ui.ExpandableChevronIcon
 import compose.icons.FeatherIcons
+import compose.icons.feathericons.Package
 import compose.icons.feathericons.Camera
 import compose.icons.feathericons.ChevronDown
 import compose.icons.feathericons.ChevronUp
@@ -460,6 +461,7 @@ internal fun AttachmentSheet(
     onUploadFile: () -> Unit,
     onUploadImage: () -> Unit,
     onTakePhoto: () -> Unit,
+    onUploadApp: () -> Unit,
     onDismiss: () -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState()
@@ -498,6 +500,12 @@ internal fun AttachmentSheet(
                 title = stringResource(com.muse.R.string.chat_take_photo),
                 enabled = canUploadImages,
                 onClick = onTakePhoto
+            )
+            AttachmentSheetItem(
+                icon = FeatherIcons.Package,
+                title = stringResource(com.muse.R.string.chat_upload_app),
+                enabled = canUploadFiles,
+                onClick = onUploadApp
             )
         }
     }

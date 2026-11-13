@@ -1104,6 +1104,9 @@ fun AIChatPanel(
         handlePickedAttachments(uris, images = true)
     }
 
+    // 上传应用：从已装应用里选一个，导出它的 APK 走同一条上传链路。
+    var showAppPicker by remember { mutableStateOf(false) }
+
     // 拍照：输出到 cache 临时文件（FileProvider 授权 uri），拍完按图片附件处理。
     var cameraPhotoUri by remember { mutableStateOf<Uri?>(null) }
     val takePictureLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
@@ -1871,6 +1874,7 @@ fun AIChatPanel(
                     )
                 },
                 onTakePhoto = ::takePhoto,
+                onUploadApp = { showAppPicker = true },
                 slashCommands = slashCommands,
                 fileMentionState = fileMentionState,
                 onFileMentionOpen = viewModel::requestFileMention,
@@ -2034,6 +2038,44 @@ fun AIChatPanel(
         // Dialog 是独立 window、不占父布局尺寸，挂在 Scaffold 之后即可覆盖整屏 ——
         // 平板双栏下不会只盖住聊天列，也不会被 MainActivity 画在最上层的全局背景水印压住。
         ImageViewerHost(state = imageViewerState, load = chatImageLoad)
+
+        if (showAppPicker) {
+            AppPickerSheet(
+                onPick = { app ->
+                    showAppPicker = false
+                    if (projectRoot.isBlank()) {
+                        Toast.makeText(context, emptyWorkspaceMessage(context), Toast.LENGTH_SHORT).show()
+                    } else if (!hasAttachmentSlots(pendingAttachments.size)) {
+                        Toast.makeText(
+                            context,
+                            maxAttachmentMessage(context, MAX_PENDING_ATTACHMENTS),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } else {
+                        scope.launch {
+                            uploadingCount = pendingAttachments.size + 1
+                            runCatching {
+                                uploadApkFile(
+                                    apkPath = app.apkPath,
+                                    displayName = app.label,
+                                    fileAccess = viewModel.fileAccess
+                                )
+                            }.onSuccess { uploaded ->
+                                pendingAttachments = pendingAttachments + uploaded.toPendingAttachment()
+                            }.onFailure { error ->
+                                Toast.makeText(
+                                    context,
+                                    error.message ?: "应用导出失败",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            uploadingCount = 0
+                        }
+                    }
+                },
+                onDismiss = { showAppPicker = false }
+            )
+        }
 
         if (showRenameDialog && currentSession != null) {
             androidx.compose.material3.AlertDialog(

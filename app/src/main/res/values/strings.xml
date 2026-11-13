@@ -827,6 +827,7 @@
     <string name="chat_queue_interject">立即插入给 AI</string>
     <string name="chat_queue_drag">拖拽排序</string>
     <string name="chat_upload_file">上传文件</string>
+    <string name="chat_upload_app">上传应用</string>
     <string name="chat_upload_image">上传图片</string>
     <string name="chat_remove_attachment">移除附件</string>    <string name="chat_no_models_hint">暂无可用模型，请在「AI 供应商」中添加</string>
     <string name="chat_stop">停止</string>
