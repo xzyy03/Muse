@@ -256,9 +256,8 @@ internal fun AppPermissionsSection(
         RootAccessDialog(
             state = rootState,
             onRefresh = rootAccessViewModel::refresh,
-            onRevoke = rootAccessViewModel::revoke,
-            onClearAll = rootAccessViewModel::clearAll,
-            onResetFuse = rootAccessViewModel::resetFuse,
+            onGrantConsent = rootAccessViewModel::grantConsent,
+            onRevokeConsent = rootAccessViewModel::revokeConsent,
             onDismiss = { showRootDialog = false }
         )
     }

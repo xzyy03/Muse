@@ -92,6 +92,31 @@ class TaskTool @Inject constructor(
 
     override val description = "管理子代理：创建、发消息、读取结果、停止、删除、列出。子代理拥有独立上下文，按所选代理的工具集工作，不能嵌套创建子代理；全局最多同时运行 5 个（所有会话共享名额）。任务完成后会通知主会话，无需轮询；运行中也可能主动发消息。用 send 可追加指令或继续追问已完成的子代理。创建时可用 tier 按任务难度选择模型档位（light 只读探索与机械活 / standard 单文件修改与常规修复 / strong 跨模块重构与疑难排查）；档位是否可用取决于用户在设置里的配置，未配置时按继承处理。"
 
+    /** tasks 数组中单个任务项的 JSON Schema */
+    private val taskItemSchema: Map<String, Any> = mapOf(
+        "type" to "object",
+        "properties" to mapOf(
+            "prompt" to mapOf(
+                "type" to "string",
+                "description" to "给子代理的完整指令（必填）。写明目标、已知信息、约束与预期产出"
+            ),
+            "description" to mapOf(
+                "type" to "string",
+                "description" to "子代理任务描述（可选，作为子会话标题，如「修复登录 bug」）"
+            ),
+            "agent" to mapOf(
+                "type" to "string",
+                "description" to "自定义子代理名（可选）：取系统提示词「可用子代理」清单中的名称"
+            ),
+            "tier" to mapOf(
+                "type" to "string",
+                "enum" to SubagentModelTier.entries.map { it.apiValue },
+                "description" to "模型档位（可选）：light / standard / strong"
+            )
+        ),
+        "required" to listOf("prompt")
+    )
+
     override val parameters: Map<String, ToolParameter> = mapOf(
         "action" to ToolParameter(
             name = "action",
@@ -134,7 +159,8 @@ class TaskTool @Inject constructor(
             name = "tasks",
             type = ParameterType.ARRAY,
             description = "批量创建任务列表（create 可选，与单个 prompt 二选一）：每个元素为一个包含 prompt（必填）、description（可选）、agent（可选）、tier（可选）的对象。一次性批量派发多个子代理。",
-            required = false
+            required = false,
+            itemsSchema = taskItemSchema
         ),
         "message" to ToolParameter(
             name = "message",

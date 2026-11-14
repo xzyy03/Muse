@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -15,26 +14,25 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.muse.feature.agent.domain.root.RootConsent
 import com.muse.feature.settings.presentation.RootAccessState
 
 /**
- * Root 权限面板：显示 su 是否可用，并管理「始终允许」记录。
+ * 软件权限页的 Root 面板：只有一个总开关。
  *
- * 撤销后，同一路径同一操作会重新弹窗——授权表只存 realpath + 操作，不存目录前缀，
- * 所以不会出现「一次允许整片目录」的放大效应。
+ * 逐路径授权已经取消——用户同意一次就代表接受 root 风险，之后不再按目录反复询问。
+ * 这里保留的入口是「关掉 / 重新打开」。
  */
 @Composable
 internal fun RootAccessDialog(
     state: RootAccessState,
     onRefresh: () -> Unit,
-    onRevoke: (String) -> Unit,
-    onClearAll: () -> Unit,
-    onResetFuse: () -> Unit,
+    onGrantConsent: () -> Unit,
+    onRevokeConsent: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -61,58 +59,46 @@ internal fun RootAccessDialog(
 
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "始终允许的路径",
+                    text = "使用授权",
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold)
                 )
-                if (state.grants.isEmpty()) {
-                    Text(
-                        text = "暂无记录。写共享目录时选择「始终允许」会出现在这里。",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    state.grants.forEach { grant ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = grant.realPath,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontFamily = FontFamily.Monospace,
-                                        fontSize = 11.sp
-                                    )
-                                )
-                                Text(
-                                    text = grant.operation,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            TextButton(onClick = { onRevoke(grant.id) }) {
-                                Text("撤销", color = MaterialTheme.colorScheme.error)
-                            }
-                        }
+                Text(
+                    text = when (state.consent) {
+                        RootConsent.GRANTED -> "已允许。root 命令直接执行，读写系统目录与共享存储都不再询问。"
+                        RootConsent.DENIED -> "已关闭。root 调用会被拒绝，AI 无法使用 Root 工具。"
+                        RootConsent.UNKNOWN -> "未授权。第一次用到 root 时会弹一次风险告知。"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = when (state.consent) {
+                        RootConsent.GRANTED -> MaterialTheme.colorScheme.primary
+                        RootConsent.DENIED -> MaterialTheme.colorScheme.error
+                        RootConsent.UNKNOWN -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
-                }
+                )
+                Text(
+                    text = "同意后可以读写系统目录与共享存储；系统关键目录（/system、/vendor、/boot 等）的写入仍会被拦截。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         },
         confirmButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (state.grants.isNotEmpty()) {
-                    TextButton(onClick = onClearAll) { Text("清空全部") }
+                if (state.consent != RootConsent.DENIED) {
+                    TextButton(onClick = onRevokeConsent) {
+                        Text("关闭权限", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                if (state.consent != RootConsent.GRANTED) {
+                    TextButton(onClick = onGrantConsent) {
+                        Text("允许使用", fontWeight = FontWeight.SemiBold)
+                    }
                 }
                 TextButton(onClick = onDismiss) { Text("关闭") }
             }
         },
         dismissButton = {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                TextButton(onClick = onRefresh) { Text("重新检测") }
-                TextButton(onClick = onResetFuse) { Text("解除暂停") }
-            }
+            TextButton(onClick = onRefresh) { Text("重新检测") }
         }
     )
 }

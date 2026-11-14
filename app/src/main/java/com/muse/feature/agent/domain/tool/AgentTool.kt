@@ -137,7 +137,10 @@ abstract class AgentTool {
             prop["type"] = param.type.name.lowercase()
             prop["description"] = param.description
             param.enum?.let { prop["enum"] = it }
-            if (param.type == ParameterType.ARRAY) param.itemsSchema?.let { prop["items"] = it }
+            // Gemini / OpenAPI 要求 array 必须带 items；没有显式 schema 时兜底成字符串数组
+            if (param.type == ParameterType.ARRAY) {
+                prop["items"] = param.itemsSchema ?: mapOf("type" to "string")
+            }
             properties[key] = prop
             if (param.required) required.add(key)
         }

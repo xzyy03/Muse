@@ -48,7 +48,12 @@ data class PendingRootApproval(
     val targets: List<RootTarget>,
     val reason: String,
     /** 选「始终允许」时实际写入授权表的范围：目录（覆盖写与删），或单个路径。 */
-    val grantScope: String? = null
+    val grantScope: String? = null,
+    /**
+     * true 表示这是「是否允许使用 root」的一次性风险告知，不是某条具体命令的确认。
+     * UI 据此只给「拒绝 / 同意」，并在同意后不再逐条询问。
+     */
+    val isConsentRequest: Boolean = false
 )
 
 /** su 执行结果。 */

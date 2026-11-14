@@ -89,19 +89,29 @@ class ContextCompactor @Inject constructor(
         val windowModel = windowProvider ?: aiProvider
         val metadata = modelMetadataService.resolve(windowModel.providerId, inferProviderType(windowModel), windowModel.model)
         val inputBudget = ModelContextPolicy.effectiveInputBudget(metadata)
-        val estimatedTokens = CompactionText.estimateRequest(systemPrompt, tools, messages)
+        val estimatedTokens = ContextTokenEstimator.estimate(systemPrompt, messages, tools)
         val currentTokens = currentInputTokens.takeIf { it > 0 } ?: estimatedTokens
         val threshold = (inputBudget * generalSettingsRepository.compactionThresholdPercent() / 100.0).toInt()
         if (messages.isEmpty() || (!force && currentTokens < threshold && currentTokens < inputBudget)) return unchanged
+
+        var splitIndex = CompactionText.selectTailStartIndex(messages, inputBudget)
+        if (force && splitIndex <= 0) splitIndex = messages.lastIndex
+        splitIndex = CompactionText.adjustSplitIndex(messages, splitIndex)
+        // 固定开销（系统提示词 + 工具定义）加上必须原样保留的最近上下文就已经压不到触发线以下时，
+        // 压缩只会白花一轮摘要调用，下一次请求又立刻重新触发；窗口小的模型最容易遇到。
+        if (!force && currentTokens < inputBudget && splitIndex > 0) {
+            val retainedTokens = ContextTokenEstimator.estimate(systemPrompt, messages.drop(splitIndex), tools)
+            if (retainedTokens >= threshold) {
+                FileLogger.i(TAG, "保留部分已达 $retainedTokens tokens（触发线 $threshold），压缩无法降到触发线以下，跳过")
+                return unchanged
+            }
+        }
 
         onEvent(AgentEvent.CompactionStarted(currentTokens))
         val originalOutputLimit = aiProvider.maxOutputTokens
         val markerTimestamp = if (sessionId != null) messagePersistenceUseCase.nextTimestamp() else null
         val summaryTimestamp = if (sessionId != null) messagePersistenceUseCase.nextTimestamp() else null
         try {
-            var splitIndex = CompactionText.selectTailStartIndex(messages, inputBudget)
-            if (force && splitIndex <= 0) splitIndex = messages.lastIndex
-            splitIndex = CompactionText.adjustSplitIndex(messages, splitIndex)
             check(splitIndex > 0) { "No compressible history before the retained tool unit" }
             val head = messages.take(splitIndex)
             val tail = messages.drop(splitIndex)

@@ -43,9 +43,14 @@ object ContextTokenEstimator {
             .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
     }
 
+    /**
+     * 有上游实测用量时以它为锚点，只把锚点之后新增内容的估算增量叠上去；
+     * 不能再和整体估算取大——固定开销（系统提示词与工具定义）的估算偏高时，
+     * 取大会让真实 10k 的上下文被判成超预算。
+     */
     fun calibrated(estimated: Int, baselineEstimate: Int, baselineUsage: Int): Int =
         if (baselineUsage > 0) {
-            maxOf(estimated.toLong(), baselineUsage.toLong() + estimated - baselineEstimate)
-                .coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+            (baselineUsage.toLong() + (estimated.toLong() - baselineEstimate).coerceAtLeast(0))
+                .coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         } else estimated
 }
